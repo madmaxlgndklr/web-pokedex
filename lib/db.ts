@@ -44,8 +44,12 @@ class PokedexDB extends Dexie {
 export const db = new PokedexDB()
 
 async function getUserId(): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser()
-  return user?.id ?? null
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    return user?.id ?? null
+  } catch {
+    return null
+  }
 }
 
 export function useCaughtPokemon() {
@@ -187,10 +191,12 @@ export function useSetting(key: string, defaultValue: string): [string, (v: stri
   const value = record?.value ?? defaultValue
   const set = async (v: string) => {
     await db.settings.put({ key, value: v })
+    // Only generation and musicOnLaunch are synced to Supabase
     if (key === 'generation' || key === 'musicOnLaunch') {
-      const [genRow, musicRow] = await Promise.all([db.settings.get('generation'), db.settings.get('musicOnLaunch')])
-      const generation = key === 'generation' ? parseInt(v) : parseInt(genRow?.value ?? '3')
-      const musicOnLaunch = key === 'musicOnLaunch' ? v === 'true' : musicRow?.value === 'true'
+      const otherKey = key === 'generation' ? 'musicOnLaunch' : 'generation'
+      const otherRow = await db.settings.get(otherKey)
+      const generation = key === 'generation' ? parseInt(v, 10) : parseInt(otherRow?.value ?? '3', 10)
+      const musicOnLaunch = key === 'musicOnLaunch' ? v === 'true' : otherRow?.value === 'true'
       const userId = await getUserId()
       if (userId) pushSettings(userId, generation, musicOnLaunch).catch(() => {})
     }
