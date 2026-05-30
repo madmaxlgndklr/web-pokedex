@@ -9,12 +9,14 @@ import { MatchupScreen } from '@/components/battle/MatchupScreen'
 import { RecordScreen } from '@/components/battle/RecordScreen'
 import { TrainerSelectScreen } from '@/components/battle/TrainerSelectScreen'
 import { TabErrorBoundary } from '@/components/ui/TabErrorBoundary'
+import { type Trainer } from '@/lib/battle/TrainerRoster'
 
 type Tab = 'CALC' | 'WILD' | 'TRAIN' | 'MATCH' | 'LOG'
 const TABS: Tab[] = ['CALC', 'WILD', 'TRAIN', 'MATCH', 'LOG']
 
 function BattlePageInner() {
   const [tab, setTab] = useState<Tab>('CALC')
+  const [activeTrainer, setActiveTrainer] = useState<Trainer | null>(null)
   const { teamIds } = useTeam()
   const params = useSearchParams()
   const preloadId = params.get('preloadId') ? parseInt(params.get('preloadId')!) : undefined
@@ -56,7 +58,11 @@ function BattlePageInner() {
         <TabErrorBoundary key={tab}>
           {tab === 'CALC'  && <DamageCalcScreen preloadId={preloadId} />}
           {tab === 'WILD'  && <TurnBattleScreen teamIds={teamIds} />}
-          {tab === 'TRAIN' && <TrainerSelectScreen teamIds={teamIds} onStartBattle={() => { setTab('WILD') }} />}
+          {tab === 'TRAIN' && (
+            activeTrainer
+              ? <TurnBattleScreen teamIds={teamIds} trainer={activeTrainer} onBack={() => setActiveTrainer(null)} />
+              : <TrainerSelectScreen teamIds={teamIds} onStartBattle={(t) => setActiveTrainer(t)} />
+          )}
           {tab === 'MATCH' && <MatchupScreen />}
           {tab === 'LOG'   && <RecordScreen />}
         </TabErrorBoundary>
