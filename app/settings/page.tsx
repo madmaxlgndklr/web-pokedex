@@ -7,6 +7,7 @@ export default function SettingsPage() {
   const { theme, toggle } = useTheme()
   const [gen, setGen] = useSetting('generation', '3')
   const [music, setMusic] = useSetting('musicOnLaunch', 'false')
+  const [spriteMode, setSpriteMode] = useSetting('sprite_mode', 'modern')
 
   const row = (label: string, control: React.ReactNode) => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
@@ -26,6 +27,29 @@ export default function SettingsPage() {
         >
           {theme === 'dark' ? 'DARK ●' : 'LIGHT ☀'}
         </button>
+      ))}
+
+      {row('SPRITE MODE', (
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {(['modern', 'retro', 'ds'] as const).map(m => (
+            <button
+              key={m}
+              onClick={() => setSpriteMode(m)}
+              style={{
+                fontFamily: 'var(--font-pixel)',
+                fontSize: '6px',
+                letterSpacing: '1px',
+                padding: '4px 8px',
+                border: '1px solid var(--border)',
+                background: spriteMode === m ? 'var(--gold)' : 'var(--surface)',
+                color: spriteMode === m ? '#000' : 'var(--text-muted)',
+                cursor: 'pointer',
+              }}
+            >
+              {m === 'modern' ? '3D GIF' : m === 'retro' ? 'GAME BOY' : 'DS ANIM'}
+            </button>
+          ))}
+        </div>
       ))}
 
       {row('DEFAULT GEN', (
