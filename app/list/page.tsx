@@ -1,4 +1,5 @@
 // app/list/page.tsx
+export const dynamic = 'force-dynamic'
 import { fetchPokemonList } from '@/lib/api'
 import { PokemonListClient } from './PokemonListClient'
 
