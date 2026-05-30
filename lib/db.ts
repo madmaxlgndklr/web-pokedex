@@ -26,6 +26,9 @@ class PokedexDB extends Dexie {
       wild_records: 'pokemonId',
       settings: 'key',
     })
+    this.version(2).stores({
+      trainer_records: 'trainerId, lastBattledAt',
+    })
   }
 }
 
