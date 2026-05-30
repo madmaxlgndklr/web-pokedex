@@ -76,7 +76,9 @@ export function useTeam() {
   const teamIds = (slots ?? []).map(s => s.pokemonId)
   const add = async (pokemonId: number) => {
     if (teamIds.length >= 6) return
+    const now = Date.now()
     await db.team.put({ slot: teamIds.length, pokemonId })
+    await db.settings.put({ key: 'team_updated_at', value: String(now) })
     const newTeam = [...teamIds, pokemonId]
     const userId = await getUserId()
     if (userId) pushTeam(userId, newTeam).catch(() => {})
@@ -85,9 +87,11 @@ export function useTeam() {
     const all = slots ?? []
     const idx = all.findIndex(s => s.pokemonId === pokemonId)
     if (idx === -1) return
+    const now = Date.now()
     await db.team.clear()
     const remaining = all.filter(s => s.pokemonId !== pokemonId)
     await db.team.bulkPut(remaining.map((s, i) => ({ slot: i, pokemonId: s.pokemonId })))
+    await db.settings.put({ key: 'team_updated_at', value: String(now) })
     const newTeam = remaining.map(s => s.pokemonId)
     const userId = await getUserId()
     if (userId) pushTeam(userId, newTeam).catch(() => {})
@@ -99,10 +103,12 @@ export function useBattleConfig(slot: number) {
   const record = useLiveQuery(() => db.battle_config.get(slot), [slot])
   const config = record ? JSON.parse(record.configJson) : null
   const save = async (configData: unknown) => {
+    const now = Date.now()
     const configJson = JSON.stringify(configData)
     await db.battle_config.put({ slot, configJson })
+    await db.settings.put({ key: 'battle_config_updated_at', value: String(now) })
     const userId = await getUserId()
-    if (userId) pushBattleConfig(userId, configJson).catch(() => {})
+    if (userId) pushBattleConfig(userId, configJson, now).catch(() => {})
   }
   return { config, save }
 }
@@ -190,15 +196,17 @@ export function useSetting(key: string, defaultValue: string): [string, (v: stri
   const record = useLiveQuery(() => db.settings.get(key), [key])
   const value = record?.value ?? defaultValue
   const set = async (v: string) => {
+    const now = Date.now()
     await db.settings.put({ key, value: v })
     // Only generation and musicOnLaunch are synced to Supabase
     if (key === 'generation' || key === 'musicOnLaunch') {
+      await db.settings.put({ key: 'settings_updated_at', value: String(now) })
       const otherKey = key === 'generation' ? 'musicOnLaunch' : 'generation'
       const otherRow = await db.settings.get(otherKey)
       const generation = key === 'generation' ? parseInt(v, 10) : parseInt(otherRow?.value ?? '3', 10)
       const musicOnLaunch = key === 'musicOnLaunch' ? v === 'true' : otherRow?.value === 'true'
       const userId = await getUserId()
-      if (userId) pushSettings(userId, generation, musicOnLaunch).catch(() => {})
+      if (userId) pushSettings(userId, generation, musicOnLaunch, now).catch(() => {})
     }
   }
   return [value, set]

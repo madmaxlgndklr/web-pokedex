@@ -224,7 +224,6 @@ export async function pushCaughtToggle(userId: string, pokemonId: number, isCaug
 export async function pushTeam(userId: string, teamIds: number[]): Promise<void> {
   const now = Date.now()
   await supabase.from('team').upsert({ user_id: userId, team_json: teamIds, updated_at: now })
-  await db.settings.put({ key: 'team_updated_at', value: String(now) })
 }
 
 export async function pushTrainerRecord(userId: string, record: TrainerRecord): Promise<void> {
@@ -254,23 +253,19 @@ export async function pushWildRecord(userId: string, record: WildRecord): Promis
   })
 }
 
-export async function pushBattleConfig(userId: string, configJson: string): Promise<void> {
-  const now = Date.now()
+export async function pushBattleConfig(userId: string, configJson: string, updatedAt: number): Promise<void> {
   await supabase.from('battle_config').upsert({
     user_id: userId,
     config_json: JSON.parse(configJson),
-    updated_at: now,
+    updated_at: updatedAt,
   })
-  await db.settings.put({ key: 'battle_config_updated_at', value: String(now) })
 }
 
-export async function pushSettings(userId: string, generation: number, musicOnLaunch: boolean): Promise<void> {
-  const now = Date.now()
+export async function pushSettings(userId: string, generation: number, musicOnLaunch: boolean, updatedAt: number): Promise<void> {
   await supabase.from('settings').upsert({
     user_id: userId,
     generation,
     music_on_launch: musicOnLaunch,
-    updated_at: now,
+    updated_at: updatedAt,
   })
-  await db.settings.put({ key: 'settings_updated_at', value: String(now) })
 }

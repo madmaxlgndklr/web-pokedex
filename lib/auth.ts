@@ -12,6 +12,7 @@ export async function signInWithEmail(email: string, password: string) {
   return data.user
 }
 
+// updateUser upgrades the current anonymous session to an email account (preserves local data)
 export async function signUpWithEmail(email: string, password: string) {
   const { data, error } = await supabase.auth.updateUser({ email, password })
   if (error) throw error

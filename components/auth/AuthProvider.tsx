@@ -35,10 +35,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       syncOnOpen().catch(() => {})
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
-      if (session) syncOnOpen().catch(() => {})
+      if (session && (event === 'SIGNED_IN' || event === 'USER_UPDATED')) {
+        syncOnOpen().catch(() => {})
+      }
     })
 
     return () => subscription.unsubscribe()
