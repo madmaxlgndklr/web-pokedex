@@ -6,11 +6,9 @@ import { TypeBadge } from '@/components/pokemon/TypeBadge'
 import { getTypeEffectiveness } from '@/lib/battle/DamageEngine'
 import { TYPE_COLORS } from '@/lib/constants'
 
-interface Props { teamIds: number[] }
-
 const ALL_TYPES = Object.keys(TYPE_COLORS)
 
-export function MatchupScreen({ teamIds }: Props) {
+export function MatchupScreen(_props: { teamIds: number[] }) {
   const [chart, setChart] = useState<Awaited<ReturnType<typeof fetchTypeChart>> | null>(null)
   const [selectedType, setSelectedType] = useState('fire')
 
