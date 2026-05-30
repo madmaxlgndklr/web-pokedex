@@ -5,9 +5,11 @@ import type {
 import { POKEAPI_BASE } from './constants'
 
 async function apiFetch<T>(path: string): Promise<T> {
-  const res = await fetch(`${POKEAPI_BASE}${path}`, {
-    next: { revalidate: 86400 },
-  })
+  // Ensure trailing slash before query string to avoid 301 redirects from the self-hosted API
+  const [base, query] = path.split('?')
+  const normalised = base.endsWith('/') ? base : `${base}/`
+  const url = `${POKEAPI_BASE}${normalised}${query ? `?${query}` : ''}`
+  const res = await fetch(url, { next: { revalidate: 86400 } })
   if (!res.ok) throw new Error(`PokeAPI ${path} → ${res.status}`)
   return res.json() as Promise<T>
 }

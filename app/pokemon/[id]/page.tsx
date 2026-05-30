@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { fetchPokemonDetail, fetchPokemonSpecies, fetchEvolutionChain } from '@/lib/api'
@@ -14,7 +15,9 @@ function getIdFromChain(url: string): string {
 }
 
 function flattenChain(link: import('@/lib/types').ChainLink): { name: string; id: number }[] {
-  const id = parseInt(link.species.url.split('/pokemon-species/')[1])
+  const parts = link.species.url.split('/pokemon-species/')
+  const id = parts[1] ? parseInt(parts[1]) : NaN
+  if (isNaN(id)) return []
   const rest = link.evolves_to.flatMap(flattenChain)
   return [{ name: link.species.name, id }, ...rest]
 }
@@ -27,9 +30,15 @@ export default async function PokemonDetailPage({ params }: Props) {
     fetchPokemonDetail(id),
     fetchPokemonSpecies(id),
   ])
-  const evoChainId = getIdFromChain(species.evolution_chain.url)
-  const evoChain = await fetchEvolutionChain(evoChainId)
-  const evolutions = flattenChain(evoChain.chain)
+
+  let evolutions: { name: string; id: number }[] = []
+  try {
+    const evoChainId = getIdFromChain(species.evolution_chain.url)
+    const evoChain = await fetchEvolutionChain(evoChainId)
+    evolutions = flattenChain(evoChain.chain)
+  } catch {
+    // Evolution chain unavailable for some Pokémon — render without it
+  }
 
   const flavorText = species.flavor_text_entries
     .filter(e => e.language.name === 'en')
