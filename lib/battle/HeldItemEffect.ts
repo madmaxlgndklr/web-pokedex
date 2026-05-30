@@ -47,9 +47,10 @@ export function applyHeldItemDamageMultiplier(
   typeMultiplier: number
 ): number {
   switch (effect.kind) {
-    case 'damage_multiplier': return effect.factor
-    case 'type_multiplier':   return effect.type === moveType ? effect.factor : 1
+    case 'damage_multiplier':    return effect.factor
+    case 'type_multiplier':      return effect.type === moveType ? effect.factor : 1
     case 'super_effective_boost': return typeMultiplier > 1 ? effect.factor : 1
-    default: return 1
+    case 'stat_multiplier':      return 1
+    case 'none':                 return 1
   }
 }
