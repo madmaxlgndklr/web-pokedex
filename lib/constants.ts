@@ -1,6 +1,7 @@
 // lib/constants.ts
 
-export const POKEAPI_BASE = 'https://madmaxlgndklrpokeapi.com/api/v2'
+export const POKEAPI_BASE =
+  process.env.POKEAPI_BASE ?? 'https://madmaxlgndklrpokeapi.com/api/v2'
 
 export const spriteUrl = (id: number) =>
   `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
