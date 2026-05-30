@@ -8,6 +8,7 @@ import { TurnBattleScreen } from '@/components/battle/TurnBattleScreen'
 import { MatchupScreen } from '@/components/battle/MatchupScreen'
 import { RecordScreen } from '@/components/battle/RecordScreen'
 import { TrainerSelectScreen } from '@/components/battle/TrainerSelectScreen'
+import { TabErrorBoundary } from '@/components/ui/TabErrorBoundary'
 
 type Tab = 'CALC' | 'WILD' | 'TRAIN' | 'MATCH' | 'LOG'
 const TABS: Tab[] = ['CALC', 'WILD', 'TRAIN', 'MATCH', 'LOG']
@@ -52,11 +53,13 @@ function BattlePageInner() {
 
       {/* Tab content */}
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-        {tab === 'CALC'  && <DamageCalcScreen preloadId={preloadId} />}
-        {tab === 'WILD'  && <TurnBattleScreen teamIds={teamIds} />}
-        {tab === 'TRAIN' && <TrainerSelectScreen teamIds={teamIds} onStartBattle={() => { setTab('WILD') }} />}
-        {tab === 'MATCH' && <MatchupScreen />}
-        {tab === 'LOG'   && <RecordScreen />}
+        <TabErrorBoundary key={tab}>
+          {tab === 'CALC'  && <DamageCalcScreen preloadId={preloadId} />}
+          {tab === 'WILD'  && <TurnBattleScreen teamIds={teamIds} />}
+          {tab === 'TRAIN' && <TrainerSelectScreen teamIds={teamIds} onStartBattle={() => { setTab('WILD') }} />}
+          {tab === 'MATCH' && <MatchupScreen />}
+          {tab === 'LOG'   && <RecordScreen />}
+        </TabErrorBoundary>
       </div>
     </div>
   )
