@@ -8,7 +8,7 @@ import { TYPE_COLORS } from '@/lib/constants'
 
 const ALL_TYPES = Object.keys(TYPE_COLORS)
 
-export function MatchupScreen(_props: { teamIds: number[] }) {
+export function MatchupScreen() {
   const [chart, setChart] = useState<Awaited<ReturnType<typeof fetchTypeChart>> | null>(null)
   const [selectedType, setSelectedType] = useState('fire')
 

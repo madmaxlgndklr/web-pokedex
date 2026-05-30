@@ -55,7 +55,7 @@ function BattlePageInner() {
         {tab === 'CALC'  && <DamageCalcScreen preloadId={preloadId} />}
         {tab === 'WILD'  && <TurnBattleScreen teamIds={teamIds} />}
         {tab === 'TRAIN' && <TrainerSelectScreen teamIds={teamIds} onStartBattle={() => { setTab('WILD') }} />}
-        {tab === 'MATCH' && <MatchupScreen teamIds={teamIds} />}
+        {tab === 'MATCH' && <MatchupScreen />}
         {tab === 'LOG'   && <RecordScreen />}
       </div>
     </div>
