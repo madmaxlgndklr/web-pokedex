@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+:root[data-theme="dark"] {
+  --bg: #1a1a2e;
+  --surface: #111111;
+  --border: #3a3a6a;
+  --text: #e0e0e0;
+  --text-muted: #666666;
+  --gold: #f0c040;
+  --blue: #6890f0;
+}
+
+:root[data-theme="light"] {
+  --bg: #f0e8d8;
+  --surface: #e8dcc8;
+  --border: #c8b89a;
+  --text: #2a2a2a;
+  --text-muted: #888888;
+  --gold: #8b4513;
+  --blue: #3a5a9a;
+}
+
+:root {
+  --header: #c0392b;
+  --glow: #6dd5ed;
+  --font-pixel: 'Press Start 2P', monospace;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-pixel);
+  font-size: 12px;
+}
+
+* { box-sizing: border-box; }
