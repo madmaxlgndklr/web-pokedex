@@ -1,15 +1,7 @@
 // app/list/PokemonListClient.tsx
 'use client'
 import { useState, useMemo, CSSProperties } from 'react'
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { List } = require('react-window') as { List: React.ComponentType<{
-  rowCount: number
-  rowHeight: number
-  rowComponent: React.ComponentType<{ index: number; style: CSSProperties }>
-  rowProps: Record<string, unknown>
-  defaultHeight?: number
-  style?: CSSProperties
-}> }
+import { List, RowComponentProps } from 'react-window'
 import { PokemonCard } from '@/components/pokemon/PokemonCard'
 import { useCaughtPokemon } from '@/lib/db'
 import { GENERATIONS } from '@/lib/constants'
@@ -32,10 +24,10 @@ export function PokemonListClient({ allPokemon }: Props) {
     return list
   }, [allPokemon, genFilter, showCaughtOnly, caught])
 
-  function Row({ index, style }: { index: number; style: CSSProperties }) {
+  function Row({ index, style }: RowComponentProps) {
     const p = filtered[index]
     return (
-      <div style={{ ...style, paddingBottom: '4px' }}>
+      <div style={{ ...style, paddingBottom: '4px' } as CSSProperties}>
         <PokemonCard
           id={p.id}
           name={p.name}
@@ -84,7 +76,7 @@ export function PokemonListClient({ allPokemon }: Props) {
       </div>
 
       {/* Virtualized list */}
-      <List
+      <List<object>
         rowCount={filtered.length}
         rowHeight={68}
         rowComponent={Row}
