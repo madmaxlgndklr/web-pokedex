@@ -7,16 +7,6 @@ import {
   mergeBattleConfig,
   mergeSettings,
 } from '../../lib/sync-merge'
-import type { RemoteState } from '../../lib/sync-merge'
-
-const baseRemote: RemoteState = {
-  caughtPokemon: [],
-  team: null,
-  trainerRecords: [],
-  wildRecords: [],
-  battleConfig: null,
-  settings: null,
-}
 
 describe('mergeCaughtPokemon', () => {
   it('unions local and remote pokemon ids', () => {
@@ -96,6 +86,13 @@ describe('mergeWildRecords', () => {
     expect(result[0].wins).toBe(3)
     expect(result[0].losses).toBe(1)
     expect(result[0].lastBattledAt).toBe(500)
+  })
+
+  it('includes wild pokemon only in remote', () => {
+    const remote = { pokemon_id: 1, pokemon_name: 'bulbasaur', wins: 2, losses: 0, last_battled_at: 100 }
+    const result = mergeWildRecords([], [remote])
+    expect(result[0].pokemonId).toBe(1)
+    expect(result[0].wins).toBe(2)
   })
 })
 

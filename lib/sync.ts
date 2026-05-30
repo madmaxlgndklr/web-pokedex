@@ -56,19 +56,17 @@ export async function pullAll(userId: string): Promise<RemoteState> {
     supabase.from('battle_config').select('config_json, updated_at').eq('user_id', userId).maybeSingle(),
     supabase.from('settings').select('generation, music_on_launch, updated_at').eq('user_id', userId).maybeSingle(),
   ])
+
+  const errors = [caught.error, team.error, trainers.error, wild.error, config.error, settings.error].filter(Boolean)
+  if (errors.length > 0) throw new Error(`Supabase pull failed: ${errors.map(e => e!.message).join('; ')}`)
+
   return {
     caughtPokemon: (caught.data ?? []) as RemoteCaughtRow[],
     team: team.data as RemoteTeamRow | null,
     trainerRecords: (trainers.data ?? []) as RemoteTrainerRow[],
     wildRecords: (wild.data ?? []) as RemoteWildRow[],
     battleConfig: config.data as RemoteBattleConfigRow | null,
-    settings: settings.data
-      ? {
-          generation: (settings.data as RemoteSettingsRow & { music_on_launch: boolean }).generation,
-          music_on_launch: (settings.data as unknown as { music_on_launch: boolean }).music_on_launch,
-          updated_at: (settings.data as unknown as { updated_at: number }).updated_at,
-        }
-      : null,
+    settings: settings.data ? (settings.data as RemoteSettingsRow) : null,
   }
 }
 
@@ -160,11 +158,10 @@ export async function pushDiff(
     )
   }
 
-  const remoteTrainerIds = new Set(remote.trainerRecords.map(r => r.trainer_id))
-  const missingTrainers = localTrainers.filter(t => !remoteTrainerIds.has(t.trainerId))
-  if (missingTrainers.length > 0) {
+  // trainer_records — upsert all local (not just missing)
+  if (localTrainers.length > 0) {
     await supabase.from('trainer_records').upsert(
-      missingTrainers.map(t => ({
+      localTrainers.map(t => ({
         user_id: userId,
         trainer_id: t.trainerId,
         name: t.name,
@@ -180,11 +177,10 @@ export async function pushDiff(
     )
   }
 
-  const remoteWildIds = new Set(remote.wildRecords.map(r => r.pokemon_id))
-  const missingWild = localWild.filter(w => !remoteWildIds.has(w.pokemonId))
-  if (missingWild.length > 0) {
+  // wild_records — upsert all local (not just missing)
+  if (localWild.length > 0) {
     await supabase.from('wild_records').upsert(
-      missingWild.map(w => ({
+      localWild.map(w => ({
         user_id: userId,
         pokemon_id: w.pokemonId,
         pokemon_name: w.pokemonName,
@@ -212,11 +208,7 @@ export async function syncOnOpen(): Promise<void> {
 
   const remote = await pullAll(user.id)
   await writeLocal(remote, localCaught, localTeam, localTrainers, localWild, localBattleConfig, localSettings)
-
-  const mergedCaught = mergeCaughtPokemon(localCaught, remote.caughtPokemon.map(r => r.pokemon_id))
-  const mergedTrainers = mergeTrainerRecords(localTrainers, remote.trainerRecords)
-  const mergedWild = mergeWildRecords(localWild, remote.wildRecords)
-  await pushDiff(user.id, remote, mergedCaught, mergedTrainers, mergedWild)
+  await pushDiff(user.id, remote, localCaught, localTrainers, localWild)
 }
 
 // ---- Fire-and-forget push functions ----
@@ -231,8 +223,8 @@ export async function pushCaughtToggle(userId: string, pokemonId: number, isCaug
 
 export async function pushTeam(userId: string, teamIds: number[]): Promise<void> {
   const now = Date.now()
-  await db.settings.put({ key: 'team_updated_at', value: String(now) })
   await supabase.from('team').upsert({ user_id: userId, team_json: teamIds, updated_at: now })
+  await db.settings.put({ key: 'team_updated_at', value: String(now) })
 }
 
 export async function pushTrainerRecord(userId: string, record: TrainerRecord): Promise<void> {
@@ -264,21 +256,21 @@ export async function pushWildRecord(userId: string, record: WildRecord): Promis
 
 export async function pushBattleConfig(userId: string, configJson: string): Promise<void> {
   const now = Date.now()
-  await db.settings.put({ key: 'battle_config_updated_at', value: String(now) })
   await supabase.from('battle_config').upsert({
     user_id: userId,
     config_json: JSON.parse(configJson),
     updated_at: now,
   })
+  await db.settings.put({ key: 'battle_config_updated_at', value: String(now) })
 }
 
 export async function pushSettings(userId: string, generation: number, musicOnLaunch: boolean): Promise<void> {
   const now = Date.now()
-  await db.settings.put({ key: 'settings_updated_at', value: String(now) })
   await supabase.from('settings').upsert({
     user_id: userId,
     generation,
     music_on_launch: musicOnLaunch,
     updated_at: now,
   })
+  await db.settings.put({ key: 'settings_updated_at', value: String(now) })
 }
