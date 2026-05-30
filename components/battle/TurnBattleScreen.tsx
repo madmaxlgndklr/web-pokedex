@@ -7,7 +7,6 @@ import { useWildRecords, useTrainerRecords } from '@/lib/db'
 import { resolvePlayerAttack, resolveEnemyAttack, buildBattlePokemon, type BattlePokemon, type BattleState } from '@/lib/battle/BattleEngine'
 import { resolveStats } from '@/lib/battle/StatConfig'
 import { Button } from '@/components/ui/Button'
-import type { Trainer } from '@/lib/battle/TrainerRoster'
 
 interface Props { teamIds: number[] }
 
@@ -22,7 +21,7 @@ export function TurnBattleScreen({ teamIds }: Props) {
   const [enemyIdInput, setEnemyIdInput] = useState('')
   const [typeChart, setTypeChart] = useState<Record<string, { double_damage_to: {name:string}[]; half_damage_to: {name:string}[]; no_damage_to: {name:string}[] }>>({})
   const { recordBattle: recordWild } = useWildRecords()
-  const { recordBattle: recordTrainer } = useTrainerRecords()
+  useTrainerRecords()
 
   const startWildBattle = useCallback(async () => {
     const enemyId = parseInt(enemyIdInput)

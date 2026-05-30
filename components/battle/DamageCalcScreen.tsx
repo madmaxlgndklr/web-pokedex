@@ -24,7 +24,7 @@ export function DamageCalcScreen({ preloadId }: Props) {
   const [attackerQuery, setAttackerQuery] = useState('')
   const [defenderQuery, setDefenderQuery] = useState('')
   const [level, setLevel] = useState(50)
-  const [selectedMoveIdx, setSelectedMoveIdx] = useState(0)
+  const [selectedMoveIdx] = useState(0)
   const [typeChart, setTypeChart] = useState<Awaited<ReturnType<typeof fetchTypeChart>> | null>(null)
   const [result, setResult] = useState<{ min: number; max: number } | null>(null)
 

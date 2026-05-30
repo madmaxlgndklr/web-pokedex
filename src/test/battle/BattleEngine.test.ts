@@ -1,6 +1,6 @@
 // src/test/battle/BattleEngine.test.ts
 import { describe, it, expect } from 'vitest'
-import { resolvePlayerAttack, type BattlePokemon, type BattleMove } from '@/lib/battle/BattleEngine'
+import { resolvePlayerAttack, type BattlePokemon } from '@/lib/battle/BattleEngine'
 
 const mockChart = {
   fire: {

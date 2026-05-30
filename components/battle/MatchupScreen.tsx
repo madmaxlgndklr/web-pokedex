@@ -1,7 +1,7 @@
 // components/battle/MatchupScreen.tsx
 'use client'
 import { useState, useEffect } from 'react'
-import { fetchTypeChart, fetchPokemonDetail } from '@/lib/api'
+import { fetchTypeChart } from '@/lib/api'
 import { TypeBadge } from '@/components/pokemon/TypeBadge'
 import { getTypeEffectiveness } from '@/lib/battle/DamageEngine'
 import { TYPE_COLORS } from '@/lib/constants'
@@ -13,14 +13,8 @@ const ALL_TYPES = Object.keys(TYPE_COLORS)
 export function MatchupScreen({ teamIds }: Props) {
   const [chart, setChart] = useState<Awaited<ReturnType<typeof fetchTypeChart>> | null>(null)
   const [selectedType, setSelectedType] = useState('fire')
-  const [teamTypes, setTeamTypes] = useState<string[][]>([])
 
   useEffect(() => { fetchTypeChart().then(setChart) }, [])
-
-  useEffect(() => {
-    Promise.all(teamIds.map(id => fetchPokemonDetail(id)))
-      .then(details => setTeamTypes(details.map(d => d.types.map(t => t.type.name))))
-  }, [teamIds])
 
   const effectivenessColor = (mult: number) => {
     if (mult === 0) return '#555'
