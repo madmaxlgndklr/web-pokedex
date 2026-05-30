@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { MobileMenu } from './MobileMenu'
+import { AccountBadge } from '@/components/auth/AccountBadge'
 
 const NAV = [
   { href: '/list',       label: 'LIST'     },
@@ -55,6 +56,9 @@ export function Sidebar() {
           })}
         </nav>
 
+        <div style={{ borderTop: '1px solid var(--border)', padding: '8px' }} className="shrink-0">
+          <AccountBadge />
+        </div>
         <div style={{ borderTop: '1px solid var(--border)' }} className="shrink-0">
           <ThemeToggle />
         </div>
