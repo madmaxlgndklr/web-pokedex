@@ -101,7 +101,8 @@ export function useTeam() {
 
 export function useBattleConfig(slot: number) {
   const record = useLiveQuery(() => db.battle_config.get(slot), [slot])
-  const config = record ? JSON.parse(record.configJson) : null
+  // undefined = still loading, null = loaded but no record, object = loaded record
+  const config: unknown | null | undefined = record === undefined ? undefined : (record ? JSON.parse(record.configJson) as unknown : null)
   const save = async (configData: unknown) => {
     const now = Date.now()
     const configJson = JSON.stringify(configData)

@@ -3,14 +3,14 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { fetchPokemonDetail, fetchPokemonList } from '@/lib/api'
 import { SpriteImage } from '@/components/pokemon/SpriteImage'
-import { useWildRecords, useTrainerRecords } from '@/lib/db'
+import { useWildRecords, useTrainerRecords, useBattleConfig } from '@/lib/db'
 import {
   buildBattlePokemon, startBattle, resolveTurn, confirmSwitch, aiPickAction,
   type BattlePokemon, type BattleState, type TurnAction,
 } from '@/lib/battle/BattleEngine'
 import { Natures } from '@/lib/battle/StatConfig'
 import type { StatConfig, Nature } from '@/lib/battle/StatConfig'
-import { learnableMoves, resolveMoves, defaultSetup, HELD_ITEM_LIST, type BattleSetup, type LearnableMove } from '@/lib/battle/BattleSetup'
+import { learnableMoves, resolveMoves, defaultSetup, setupToConfig, configToSetup, HELD_ITEM_LIST, type BattleSetup, type LearnableMove } from '@/lib/battle/BattleSetup'
 import { Button } from '@/components/ui/Button'
 import type { PokemonDetail, HeldItem } from '@/lib/types'
 import type { Trainer } from '@/lib/battle/TrainerRoster'
@@ -529,6 +529,24 @@ export function TurnBattleScreen({ teamIds, trainer, onBack }: Props) {
   const { recordBattle: recordWild } = useWildRecords()
   const { recordBattle: recordTrainer } = useTrainerRecords()
   const wildOpponentRef = useRef<{ id: number; name: string } | null>(null)
+  const { config: savedConfig, save: saveConfig } = useBattleConfig(0)
+  const configAppliedRef = useRef(false)
+
+  // Apply persisted config once when Dexie resolves (undefined = still loading)
+  useEffect(() => {
+    if (configAppliedRef.current || battleState !== null || savedConfig === undefined) return
+    configAppliedRef.current = true
+    if (savedConfig !== null) setSetup(configToSetup(savedConfig))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedConfig])
+
+  // Debounced save whenever the user changes setup
+  useEffect(() => {
+    if (!configAppliedRef.current) return
+    const timer = setTimeout(() => { saveConfig(setupToConfig(setup)) }, 800)
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setup])
 
   // Record result on battle end
   useEffect(() => {

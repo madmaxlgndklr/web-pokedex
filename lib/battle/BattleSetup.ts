@@ -1,4 +1,3 @@
-// lib/battle/BattleSetup.ts
 import { fetchMove } from '@/lib/api'
 import { Natures } from './StatConfig'
 import type { StatConfig, Nature } from './StatConfig'
@@ -151,3 +150,80 @@ export const HELD_ITEM_LIST: HeldItem[] = [
   { id: 41, name: 'iron-plate',    displayName: 'Iron Plate',     effectSummary: '+20% Steel moves' },
   { id: 42, name: 'pixie-plate',   displayName: 'Pixie Plate',    effectSummary: '+20% Fairy moves' },
 ]
+
+// ── Shared config serialization (matches Android's BattleConfigDto) ──────────
+//
+// JSON schema:
+// { gen, level, moves, nature, statConfig: {type, arr1, arr2}, heldItem, slots: {"1": {...}} }
+//
+// Android ignores unknown fields, so `gen` is a safe web-only addition.
+
+interface SharedStatConfig { type: string; arr1: number[]; arr2: number[] }
+
+function statConfigToShared(sc: StatConfig): SharedStatConfig {
+  if (sc.kind === 'gen12') return { type: 'gen12', arr1: [...sc.dvs], arr2: [...sc.statExp] }
+  return { type: 'gen3plus', arr1: [...sc.ivs], arr2: [...sc.evs] }
+}
+
+function sharedToStatConfig(dto: unknown): StatConfig {
+  if (!dto || typeof dto !== 'object') return { kind: 'gen3plus', ivs: [31,31,31,31,31,31], evs: [0,0,0,0,0,0] }
+  const d = dto as SharedStatConfig
+  if (d.type === 'gen12') return { kind: 'gen12', dvs: d.arr1 ?? [15,15,15,15,15], statExp: d.arr2 ?? [0,0,0,0,0] }
+  return { kind: 'gen3plus', ivs: d.arr1 ?? [31,31,31,31,31,31], evs: d.arr2 ?? [0,0,0,0,0,0] }
+}
+
+export function setupToConfig(setup: BattleSetup): Record<string, unknown> {
+  return {
+    gen: setup.gen,
+    level: setup.level,
+    moves: setup.selectedMoveNames,
+    nature: setup.nature.name,
+    statConfig: statConfigToShared(setup.statConfig),
+    heldItem: setup.heldItem ?? null,
+    slots: Object.fromEntries(
+      Object.entries(setup.teamOverrides).map(([k, ov]) => [k, {
+        level: ov.level ?? null,
+        nature: ov.nature?.name ?? null,
+        moves: ov.selectedMoveNames ?? null,
+        statConfig: ov.statConfig ? statConfigToShared(ov.statConfig) : null,
+        heldItem: ov.heldItem ?? null,
+      }])
+    ),
+  }
+}
+
+export function configToSetup(raw: unknown): BattleSetup {
+  const c = (raw && typeof raw === 'object') ? raw as Record<string, unknown> : {}
+  const def = defaultSetup()
+  const gen   = typeof c.gen   === 'number' ? c.gen                              : def.gen
+  const level = typeof c.level === 'number' ? Math.max(1, Math.min(100, c.level)) : def.level
+  const moves = Array.isArray(c.moves)
+    ? (c.moves as unknown[]).filter((m): m is string => typeof m === 'string')
+    : []
+  const natureName = typeof c.nature === 'string' ? c.nature : 'Hardy'
+  const nature = Natures.ALL.find(n => n.name.toLowerCase() === natureName.toLowerCase()) ?? Natures.HARDY
+  const statConfig = sharedToStatConfig(c.statConfig)
+  const heldItem = (c.heldItem && typeof c.heldItem === 'object') ? c.heldItem as HeldItem : null
+
+  const slotsRaw = (c.slots && typeof c.slots === 'object') ? c.slots as Record<string, unknown> : {}
+  const teamOverrides: Record<number, SlotOverride> = {}
+  for (const [k, v] of Object.entries(slotsRaw)) {
+    const idx = parseInt(k)
+    if (isNaN(idx) || !v || typeof v !== 'object') continue
+    const sv = v as Record<string, unknown>
+    const ovNature = typeof sv.nature === 'string'
+      ? (Natures.ALL.find(n => n.name.toLowerCase() === sv.nature.toLowerCase()) ?? undefined)
+      : undefined
+    teamOverrides[idx] = {
+      level:             typeof sv.level === 'number' ? sv.level : undefined,
+      nature:            ovNature,
+      selectedMoveNames: Array.isArray(sv.moves)
+        ? (sv.moves as unknown[]).filter((m): m is string => typeof m === 'string')
+        : undefined,
+      statConfig:  sv.statConfig ? sharedToStatConfig(sv.statConfig) : undefined,
+      heldItem:    (sv.heldItem && typeof sv.heldItem === 'object') ? sv.heldItem as HeldItem : undefined,
+    }
+  }
+
+  return { gen, level, selectedMoveNames: moves, statConfig, nature, heldItem, teamOverrides }
+}
