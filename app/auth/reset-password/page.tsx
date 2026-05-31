@@ -41,12 +41,23 @@ function ResetContent() {
   }, [])
 
   const handleSubmit = async () => {
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters')
+      return
+    }
     if (password !== confirm) {
       setError('Passwords do not match')
       return
     }
     setError(null)
     setPhase('saving')
+
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      router.replace('/login')
+      return
+    }
+
     const { error } = await supabase.auth.updateUser({ password })
     if (error) {
       setError(error.message)
@@ -107,35 +118,38 @@ function ResetContent() {
         <div style={{ fontFamily: 'var(--font-pixel)', fontSize: '8px', color: '#f0c040', letterSpacing: '1px' }}>
           NEW PASSWORD
         </div>
-        <input
-          type="password"
-          placeholder="new password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          style={inputStyle}
-        />
-        <input
-          type="password"
-          placeholder="confirm password"
-          value={confirm}
-          onChange={e => setConfirm(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
-          style={inputStyle}
-        />
-        {error && (
-          <div style={{ fontFamily: 'monospace', fontSize: '11px', color: '#c03028' }}>{error}</div>
-        )}
-        <button
-          onClick={handleSubmit}
-          disabled={phase === 'saving' || !password || !confirm}
-          style={{
-            ...primaryBtnStyle,
-            opacity: (phase === 'saving' || !password || !confirm) ? 0.6 : 1,
-            cursor: (phase === 'saving' || !password || !confirm) ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {phase === 'saving' ? 'SAVING…' : 'SET PASSWORD'}
-        </button>
+        <form onSubmit={e => { e.preventDefault(); handleSubmit() }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <input
+            type="password"
+            placeholder="new password"
+            aria-label="New password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            style={inputStyle}
+          />
+          <input
+            type="password"
+            placeholder="confirm password"
+            aria-label="Confirm password"
+            value={confirm}
+            onChange={e => setConfirm(e.target.value)}
+            style={inputStyle}
+          />
+          {error && (
+            <div style={{ fontFamily: 'monospace', fontSize: '11px', color: '#c03028' }}>{error}</div>
+          )}
+          <button
+            type="submit"
+            disabled={phase === 'saving' || !password || !confirm}
+            style={{
+              ...primaryBtnStyle,
+              opacity: (phase === 'saving' || !password || !confirm) ? 0.6 : 1,
+              cursor: (phase === 'saving' || !password || !confirm) ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {phase === 'saving' ? 'SAVING…' : 'SET PASSWORD'}
+          </button>
+        </form>
       </div>
     </div>
   )
