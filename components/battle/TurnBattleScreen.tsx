@@ -42,21 +42,23 @@ function SetupView({
   const [slotFetchError, setSlotFetchError] = useState<string | null>(null)
   const [moves, setMoves] = useState<LearnableMove[]>([])
 
+  const slotPokemonId = teamIds[selectedSlot]
+  const slotOv = selectedSlot === 0 ? undefined : setup.teamOverrides[slotPokemonId]
   const slotLevel = selectedSlot === 0
     ? setup.level
-    : (setup.teamOverrides[selectedSlot]?.level ?? setup.level)
+    : (slotOv?.level ?? setup.level)
   const slotNature = selectedSlot === 0
     ? setup.nature
-    : (setup.teamOverrides[selectedSlot]?.nature ?? setup.nature)
+    : (slotOv?.nature ?? setup.nature)
   const slotConfig = selectedSlot === 0
     ? setup.statConfig
-    : (setup.teamOverrides[selectedSlot]?.statConfig ?? setup.statConfig)
+    : (slotOv?.statConfig ?? setup.statConfig)
   const slotHeldItem = selectedSlot === 0
     ? (setup.heldItem ?? null)
-    : (setup.teamOverrides[selectedSlot]?.heldItem ?? setup.heldItem ?? null)
+    : (slotOv?.heldItem ?? setup.heldItem ?? null)
   const slotMoveNames = selectedSlot === 0
     ? setup.selectedMoveNames
-    : (setup.teamOverrides[selectedSlot]?.selectedMoveNames
+    : (slotOv?.selectedMoveNames
         ?? learnableMoves(slotDetails[selectedSlot] ?? slotDetails[0]!, slotLevel).filter(m => m.available).slice(0, 4).map(m => m.name))
 
   // Fetch detail for selected slot
@@ -93,8 +95,8 @@ function SetupView({
     if (selectedSlot === 0) {
       onSetupChange({ ...setup, level: clamped })
     } else {
-      const ov = setup.teamOverrides[selectedSlot] ?? {}
-      onSetupChange({ ...setup, teamOverrides: { ...setup.teamOverrides, [selectedSlot]: { ...ov, level: clamped } } })
+      const ov = slotOv ?? {}
+      onSetupChange({ ...setup, teamOverrides: { ...setup.teamOverrides, [slotPokemonId]: { ...ov, level: clamped } } })
     }
   }
 
@@ -106,12 +108,12 @@ function SetupView({
         : cur.length < 4 ? [...cur, name] : cur
       onSetupChange({ ...setup, selectedMoveNames: next })
     } else {
-      const ov = setup.teamOverrides[selectedSlot] ?? {}
+      const ov = slotOv ?? {}
       const cur = ov.selectedMoveNames ?? learnableMoves(slotDetails[selectedSlot]!, slotLevel).filter(m => m.available).slice(0, 4).map(m => m.name)
       const next = cur.includes(name)
         ? cur.filter(m => m !== name)
         : cur.length < 4 ? [...cur, name] : cur
-      onSetupChange({ ...setup, teamOverrides: { ...setup.teamOverrides, [selectedSlot]: { ...ov, selectedMoveNames: next } } })
+      onSetupChange({ ...setup, teamOverrides: { ...setup.teamOverrides, [slotPokemonId]: { ...ov, selectedMoveNames: next } } })
     }
   }
 
@@ -119,8 +121,8 @@ function SetupView({
     if (selectedSlot === 0) {
       onSetupChange({ ...setup, nature })
     } else {
-      const ov = setup.teamOverrides[selectedSlot] ?? {}
-      onSetupChange({ ...setup, teamOverrides: { ...setup.teamOverrides, [selectedSlot]: { ...ov, nature } } })
+      const ov = slotOv ?? {}
+      onSetupChange({ ...setup, teamOverrides: { ...setup.teamOverrides, [slotPokemonId]: { ...ov, nature } } })
     }
   }
 
@@ -128,8 +130,8 @@ function SetupView({
     if (selectedSlot === 0) {
       onSetupChange({ ...setup, heldItem: item })
     } else {
-      const ov = setup.teamOverrides[selectedSlot] ?? {}
-      onSetupChange({ ...setup, teamOverrides: { ...setup.teamOverrides, [selectedSlot]: { ...ov, heldItem: item } } })
+      const ov = slotOv ?? {}
+      onSetupChange({ ...setup, teamOverrides: { ...setup.teamOverrides, [slotPokemonId]: { ...ov, heldItem: item } } })
     }
   }
 
@@ -137,8 +139,8 @@ function SetupView({
     if (selectedSlot === 0) {
       onSetupChange({ ...setup, statConfig: config })
     } else {
-      const ov = setup.teamOverrides[selectedSlot] ?? {}
-      onSetupChange({ ...setup, teamOverrides: { ...setup.teamOverrides, [selectedSlot]: { ...ov, statConfig: config } } })
+      const ov = slotOv ?? {}
+      onSetupChange({ ...setup, teamOverrides: { ...setup.teamOverrides, [slotPokemonId]: { ...ov, statConfig: config } } })
     }
   }
 
@@ -575,7 +577,7 @@ export function TurnBattleScreen({ teamIds, trainer, onBack }: Props) {
       const playerTeam: BattlePokemon[] = await Promise.all(
         teamIds.map(async (id, idx) => {
           const detail = await fetchPokemonDetail(id)
-          const ov = setup.teamOverrides[idx]
+          const ov = idx === 0 ? undefined : setup.teamOverrides[id]
           const level = ov?.level ?? setup.level
           const statConfig = ov?.statConfig ?? setup.statConfig
           const nature = ov?.nature ?? setup.nature
