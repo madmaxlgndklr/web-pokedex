@@ -27,7 +27,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const anonUser = await signInAnonymously()
           setUser(anonUser)
-        } catch {
+        } catch (e) {
+          console.warn('[AuthProvider] Anonymous sign-in failed (check Supabase dashboard → Authentication → Settings → Enable anonymous sign-ins):', e)
           // stay unauthenticated — app still works offline
         }
       }

@@ -12,16 +12,35 @@ export async function signInWithEmail(email: string, password: string) {
   return data.user
 }
 
-// updateUser upgrades the current anonymous session to an email account (preserves local data)
+// updateUser upgrades the current anonymous session to an email account (preserves local data).
+// Falls back to signUp when no session exists (anonymous auth disabled or expired).
 export async function signUpWithEmail(email: string, password: string) {
-  const { data, error } = await supabase.auth.updateUser({ email, password })
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session) {
+    const { data, error } = await supabase.auth.updateUser({ email, password })
+    if (error) throw error
+    return data.user
+  }
+  const { data, error } = await supabase.auth.signUp({ email, password })
   if (error) throw error
   return data.user
 }
 
+// linkIdentity attaches Google to the current session (preserves local data).
+// Falls back to signInWithOAuth when no session exists.
 export async function linkGoogle() {
-  const { error } = await supabase.auth.linkIdentity({ provider: 'google' })
-  if (error) throw error
+  const { data: { session } } = await supabase.auth.getSession()
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin
+  if (session) {
+    const { error } = await supabase.auth.linkIdentity({ provider: 'google' })
+    if (error) throw error
+  } else {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${origin}/auth/callback` },
+    })
+    if (error) throw error
+  }
 }
 
 export async function signOut() {
