@@ -56,7 +56,7 @@ export function TurnBattleScreen({ teamIds, trainer, onBack }: Props) {
         setState({ phase: 'player_turn' })
       } catch (e) {
         console.error('Failed to start trainer battle:', e)
-        setBattleError('Failed to load battle data. Check your connection and try again.')
+        setBattleError(`Failed to load battle data: ${e instanceof Error ? e.message : String(e)}`)
       }
     })()
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -80,7 +80,7 @@ export function TurnBattleScreen({ teamIds, trainer, onBack }: Props) {
       setState({ phase: 'player_turn' })
     } catch (e) {
       console.error('Failed to start wild battle:', e)
-      setBattleError('Failed to load battle data. Check your connection and try again.')
+      setBattleError(`Failed to load battle data: ${e instanceof Error ? e.message : String(e)}`)
     }
   }, [enemyIdInput, teamIds])
 
