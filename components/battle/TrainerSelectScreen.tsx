@@ -39,7 +39,7 @@ export function TrainerSelectScreen({ teamIds, onStartBattle }: Props) {
             {selected.title} • {selected.region.toUpperCase()} • {selected.typeSpecialty.toUpperCase()} TYPE
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => onStartBattle(selected)}>BATTLE!</Button>
+            <Button onClick={() => onStartBattle(selected)} disabled={teamIds.length === 0}>BATTLE!</Button>
             <Button onClick={() => setSelected(null)} variant="secondary">BACK</Button>
           </div>
         </div>

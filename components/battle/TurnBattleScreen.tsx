@@ -24,6 +24,7 @@ export function TurnBattleScreen({ teamIds, trainer, onBack }: Props) {
   const [enemy, setEnemy] = useState<BattlePokemon | null>(null)
   const [log, setLog] = useState<string[]>([])
   const [enemyIdInput, setEnemyIdInput] = useState('')
+  const [battleError, setBattleError] = useState<string | null>(null)
   const [typeChart, setTypeChart] = useState<Record<string, { double_damage_to: {name:string}[]; half_damage_to: {name:string}[]; no_damage_to: {name:string}[] }>>({})
   const { recordBattle: recordWild } = useWildRecords()
   const { recordBattle: recordTrainer } = useTrainerRecords()
@@ -55,7 +56,7 @@ export function TurnBattleScreen({ teamIds, trainer, onBack }: Props) {
         setState({ phase: 'player_turn' })
       } catch (e) {
         console.error('Failed to start trainer battle:', e)
-        setState({ phase: 'setup' })
+        setBattleError('Failed to load battle data. Check your connection and try again.')
       }
     })()
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -64,17 +65,23 @@ export function TurnBattleScreen({ teamIds, trainer, onBack }: Props) {
   const startWildBattle = useCallback(async () => {
     const enemyId = parseInt(enemyIdInput)
     if (isNaN(enemyId) || teamIds.length === 0) return
-    const [enemyDetail, playerDetail, { fetchTypeChart }] = await Promise.all([
-      fetchPokemonDetail(enemyId),
-      fetchPokemonDetail(teamIds[0]),
-      import('@/lib/api'),
-    ])
-    const chart = await fetchTypeChart()
-    setTypeChart(chart)
-    setPlayer(buildPkmn(playerDetail))
-    setEnemy(buildPkmn(enemyDetail))
-    setLog([`A wild ${enemyDetail.name.toUpperCase()} appeared!`])
-    setState({ phase: 'player_turn' })
+    setBattleError(null)
+    try {
+      const [enemyDetail, playerDetail, { fetchTypeChart }] = await Promise.all([
+        fetchPokemonDetail(enemyId),
+        fetchPokemonDetail(teamIds[0]),
+        import('@/lib/api'),
+      ])
+      const chart = await fetchTypeChart()
+      setTypeChart(chart)
+      setPlayer(buildPkmn(playerDetail))
+      setEnemy(buildPkmn(enemyDetail))
+      setLog([`A wild ${enemyDetail.name.toUpperCase()} appeared!`])
+      setState({ phase: 'player_turn' })
+    } catch (e) {
+      console.error('Failed to start wild battle:', e)
+      setBattleError('Failed to load battle data. Check your connection and try again.')
+    }
   }, [enemyIdInput, teamIds])
 
   const playerAttack = useCallback((moveIdx: number) => {
@@ -118,8 +125,9 @@ export function TurnBattleScreen({ teamIds, trainer, onBack }: Props) {
       <div className="flex gap-2 mb-4">
         <input value={enemyIdInput} onChange={e => setEnemyIdInput(e.target.value)} placeholder="ENEMY POKÉMON #ID"
           style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', fontFamily: 'var(--font-pixel)', fontSize: '7px', padding: '6px 10px', borderRadius: '3px' }} />
-        <Button onClick={startWildBattle}>START</Button>
+        <Button onClick={startWildBattle} disabled={teamIds.length === 0}>START</Button>
       </div>
+      {battleError && <p style={{ fontFamily: 'var(--font-pixel)', fontSize: '6px', color: '#c03028', marginBottom: '6px' }}>{battleError}</p>}
       {teamIds.length === 0 && (
         <p style={{ fontFamily: 'var(--font-pixel)', fontSize: '6px', color: 'var(--text-muted)' }}>Add Pokémon to your team first!</p>
       )}
@@ -127,8 +135,20 @@ export function TurnBattleScreen({ teamIds, trainer, onBack }: Props) {
   )
 
   if (state.phase === 'setup' && trainer) return (
-    <div style={{ padding: '12px' }}>
-      <div style={{ fontFamily: 'var(--font-pixel)', fontSize: '6px', color: 'var(--text-muted)' }}>Loading trainer battle...</div>
+    <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {battleError ? (
+        <>
+          <div style={{ fontFamily: 'var(--font-pixel)', fontSize: '6px', color: '#c03028' }}>{battleError}</div>
+          {onBack && <Button onClick={onBack} variant="secondary">BACK</Button>}
+        </>
+      ) : teamIds.length === 0 ? (
+        <>
+          <div style={{ fontFamily: 'var(--font-pixel)', fontSize: '6px', color: 'var(--text-muted)' }}>Add Pokémon to your team to battle trainers.</div>
+          {onBack && <Button onClick={onBack} variant="secondary">BACK</Button>}
+        </>
+      ) : (
+        <div style={{ fontFamily: 'var(--font-pixel)', fontSize: '6px', color: 'var(--text-muted)' }}>Loading trainer battle...</div>
+      )}
     </div>
   )
 
