@@ -11,6 +11,7 @@ export default function ProfilePage() {
   const [trainerName, setTrainerName] = useSetting('trainerName', '')
   const [draft, setDraft] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   if (loading) return null
 
@@ -18,15 +19,26 @@ export default function ProfilePage() {
   const displayed = draft ?? trainerName
 
   const handleSave = async () => {
-    if (draft !== null) {
-      await setTrainerName(draft)
-      setDraft(null)
+    if (draft !== null && draft !== trainerName) {
+      setSaving(true)
+      try {
+        await setTrainerName(draft)
+        setDraft(null)
+      } finally {
+        setSaving(false)
+      }
     }
   }
 
   const handleSignOut = async () => {
     setSigningOut(true)
-    try { await signOut() } finally { setSigningOut(false) }
+    try {
+      await signOut()
+    } catch (err) {
+      console.error('Sign out failed:', err)
+    } finally {
+      setSigningOut(false)
+    }
   }
 
   const inputStyle: React.CSSProperties = {
@@ -48,8 +60,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <div style={{ padding: '32px 24px', maxWidth: '480px' }}>
-      <div style={{ fontFamily: 'var(--font-pixel)', fontSize: '9px', color: '#f0c040', letterSpacing: '1px', marginBottom: '28px' }}>
+    <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: '32px 24px', maxWidth: '480px' }}>
+      <div style={{ fontFamily: 'var(--font-pixel)', fontSize: '9px', color: 'var(--gold)', letterSpacing: '1px', marginBottom: '28px' }}>
         TRAINER PROFILE
       </div>
 
@@ -68,7 +80,7 @@ export default function ProfilePage() {
           />
           <button
             onClick={handleSave}
-            disabled={draft === null}
+            disabled={draft === null || draft === trainerName || saving}
             style={{
               padding: '8px 14px',
               background: 'var(--blue)',
@@ -77,11 +89,11 @@ export default function ProfilePage() {
               borderRadius: '4px',
               fontFamily: 'var(--font-pixel)',
               fontSize: '6px',
-              cursor: draft === null ? 'not-allowed' : 'pointer',
-              opacity: draft === null ? 0.45 : 1,
+              cursor: draft === null || draft === trainerName || saving ? 'not-allowed' : 'pointer',
+              opacity: draft === null || draft === trainerName || saving ? 0.45 : 1,
             }}
           >
-            SAVE
+            {saving ? 'SAVING...' : 'SAVE'}
           </button>
         </div>
       </div>
@@ -104,7 +116,7 @@ export default function ProfilePage() {
           </>
         ) : (
           <>
-            <div style={{ fontFamily: 'var(--font-pixel)', fontSize: '6px', color: '#f0c040', letterSpacing: '0.5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontFamily: 'var(--font-pixel)', fontSize: '6px', color: 'var(--gold)', letterSpacing: '0.5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {(user.email ?? 'GOOGLE ACCOUNT').toUpperCase()}
             </div>
             <button
