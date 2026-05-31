@@ -24,6 +24,18 @@ export function PokemonListClient({ allPokemon }: Props) {
     return list
   }, [allPokemon, genFilter, showCaughtOnly, caught])
 
+  const allCaught = filtered.every(p => caught.has(p.id))
+
+  async function handleSelectAll() {
+    if (allCaught) {
+      // Deselect all: uncatch every filtered pokemon
+      await Promise.all(filtered.map(p => toggle(p.id)))
+    } else {
+      // Select all: catch only the uncaught ones
+      await Promise.all(filtered.filter(p => !caught.has(p.id)).map(p => toggle(p.id)))
+    }
+  }
+
   function Row({ index, style }: RowComponentProps) {
     const p = filtered[index]
     return (
@@ -84,6 +96,26 @@ export function PokemonListClient({ allPokemon }: Props) {
         defaultHeight={600}
         style={{ height: 600 }}
       />
+
+      {/* Select All / Deselect All button - only visible when a generation is selected */}
+      {genFilter !== null && (
+        <button
+          onClick={handleSelectAll}
+          style={{
+            marginTop: '12px',
+            background: allCaught ? 'var(--gold)' : 'var(--surface)',
+            color: allCaught ? 'var(--surface)' : 'var(--text-muted)',
+            border: '1px solid var(--border)',
+            fontFamily: 'var(--font-pixel)',
+            fontSize: '6px',
+            padding: '4px 8px',
+            borderRadius: '3px',
+            cursor: 'pointer',
+          }}
+        >
+          {allCaught ? '✓ DESELECT ALL' : '★ SELECT ALL'}
+        </button>
+      )}
     </div>
   )
 }
