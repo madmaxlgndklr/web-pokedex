@@ -115,21 +115,21 @@ describe('mergeBattleConfig', () => {
 
 describe('mergeSettings', () => {
   it('keeps remote when remote is newer', () => {
-    const result = mergeSettings({ generation: 3, musicOnLaunch: false, updatedAt: 1000 }, { generation: 4, musicOnLaunch: true, updatedAt: 2000 })
+    const result = mergeSettings({ generation: 3, musicOnLaunch: false, trainerName: '', updatedAt: 1000 }, { generation: 4, musicOnLaunch: true, trainerName: '', updatedAt: 2000 })
     expect(result.generation).toBe(4)
   })
 
   it('keeps local when local is newer', () => {
-    const result = mergeSettings({ generation: 5, musicOnLaunch: true, updatedAt: 3000 }, { generation: 3, musicOnLaunch: false, updatedAt: 1000 })
+    const result = mergeSettings({ generation: 5, musicOnLaunch: true, trainerName: '', updatedAt: 3000 }, { generation: 3, musicOnLaunch: false, trainerName: '', updatedAt: 1000 })
     expect(result.generation).toBe(5)
   })
 
   it('keeps local when remote is null', () => {
-    const result = mergeSettings({ generation: 3, musicOnLaunch: false, updatedAt: 1000 }, null)
+    const result = mergeSettings({ generation: 3, musicOnLaunch: false, trainerName: '', updatedAt: 1000 }, null)
     expect(result.generation).toBe(3)
   })
 
-  describe('mergeSettings trainerName', () => {
+  describe('trainerName', () => {
     it('remote wins when newer', () => {
       const local = { generation: 5, musicOnLaunch: false, trainerName: 'ASH', updatedAt: 100 }
       const remote = { generation: 3, musicOnLaunch: true, trainerName: 'MISTY', updatedAt: 200 }
