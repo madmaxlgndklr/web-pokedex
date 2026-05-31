@@ -1,17 +1,23 @@
 'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { signInWithEmail, signUpWithEmail, linkGoogle } from '@/lib/auth'
+import { Suspense, useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { signInWithEmail, signUpWithEmail, linkGoogle, resetPasswordForEmail } from '@/lib/auth'
 
-type Mode = 'signin' | 'signup'
+type Mode = 'signin' | 'signup' | 'forgot'
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [mode, setMode] = useState<Mode>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [emailSent, setEmailSent] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (searchParams.get('mode') === 'forgot') setMode('forgot')
+  }, [searchParams])
 
   const handleEmail = async () => {
     setError(null)
@@ -19,10 +25,11 @@ export default function LoginPage() {
     try {
       if (mode === 'signin') {
         await signInWithEmail(email, password)
+        router.back()
       } else {
         await signUpWithEmail(email, password)
+        setEmailSent(email)
       }
-      router.back()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Authentication failed')
     } finally {
@@ -42,6 +49,35 @@ export default function LoginPage() {
     }
   }
 
+  const handleForgot = async () => {
+    setError(null)
+    setLoading(true)
+    try {
+      await resetPasswordForEmail(email)
+      setEmailSent(email)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to send reset email')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const backToSignIn = () => {
+    setEmailSent(null)
+    setMode('signin')
+    setError(null)
+  }
+
+  const inputStyle: React.CSSProperties = {
+    padding: '8px',
+    background: 'var(--bg)',
+    border: '1px solid var(--border)',
+    borderRadius: '4px',
+    color: 'var(--text)',
+    fontFamily: 'monospace',
+    fontSize: '12px',
+  }
+
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px', padding: '24px', width: '100%', maxWidth: '360px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -49,67 +85,132 @@ export default function LoginPage() {
           SYNC ACCOUNT
         </div>
 
-        <button
-          onClick={handleGoogle}
-          disabled={loading}
-          style={{ padding: '10px 16px', background: 'var(--blue)', color: '#fff', border: 'none', borderRadius: '4px', fontFamily: 'var(--font-pixel)', fontSize: '6px', letterSpacing: '0.5px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}
-        >
-          CONTINUE WITH GOOGLE
-        </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
-          <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '6px', color: 'var(--text-muted)' }}>OR</span>
-          <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
-        </div>
-
-        <div style={{ display: 'flex', gap: '0' }}>
-          {(['signin', 'signup'] as Mode[]).map(m => (
+        {emailSent ? (
+          <>
+            <div style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text)', lineHeight: 1.5 }}>
+              {mode === 'forgot'
+                ? `Reset link sent to ${emailSent}.`
+                : `We sent a confirmation to ${emailSent}. Click the link to finish creating your account.`}
+            </div>
             <button
-              key={m}
-              onClick={() => { setMode(m); setError(null) }}
-              style={{ flex: 1, padding: '6px', fontFamily: 'var(--font-pixel)', fontSize: '6px', background: mode === m ? 'var(--blue)' : 'transparent', color: mode === m ? '#fff' : 'var(--text-muted)', border: '1px solid var(--border)', cursor: 'pointer' }}
+              onClick={backToSignIn}
+              style={{ background: 'transparent', border: 'none', fontFamily: 'var(--font-pixel)', fontSize: '6px', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', textAlign: 'left' }}
             >
-              {m === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT'}
+              BACK TO SIGN IN
             </button>
-          ))}
-        </div>
+          </>
+        ) : mode === 'forgot' ? (
+          <>
+            <input
+              type="email"
+              placeholder="email"
+              aria-label="Email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleForgot() }}
+              style={inputStyle}
+            />
+            {error && (
+              <div style={{ fontFamily: 'monospace', fontSize: '11px', color: '#c03028' }}>{error}</div>
+            )}
+            <button
+              onClick={handleForgot}
+              disabled={loading || !email}
+              style={{ padding: '10px 16px', background: 'var(--blue)', color: '#fff', border: 'none', borderRadius: '4px', fontFamily: 'var(--font-pixel)', fontSize: '6px', letterSpacing: '0.5px', cursor: (loading || !email) ? 'not-allowed' : 'pointer', opacity: (loading || !email) ? 0.7 : 1 }}
+            >
+              SEND RESET EMAIL
+            </button>
+            <button
+              onClick={backToSignIn}
+              style={{ background: 'transparent', border: 'none', fontFamily: 'var(--font-pixel)', fontSize: '6px', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', textAlign: 'left' }}
+            >
+              BACK TO SIGN IN
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={handleGoogle}
+              disabled={loading}
+              style={{ padding: '10px 16px', background: 'var(--blue)', color: '#fff', border: 'none', borderRadius: '4px', fontFamily: 'var(--font-pixel)', fontSize: '6px', letterSpacing: '0.5px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}
+            >
+              CONTINUE WITH GOOGLE
+            </button>
 
-        <input
-          type="email"
-          placeholder="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          style={{ padding: '8px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text)', fontFamily: 'monospace', fontSize: '12px' }}
-        />
-        <input
-          type="password"
-          placeholder="password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') handleEmail() }}
-          style={{ padding: '8px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text)', fontFamily: 'monospace', fontSize: '12px' }}
-        />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+              <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '6px', color: 'var(--text-muted)' }}>OR</span>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+            </div>
 
-        {error && (
-          <div style={{ fontFamily: 'monospace', fontSize: '11px', color: '#c03028' }}>{error}</div>
+            <div style={{ display: 'flex', gap: '0' }}>
+              {(['signin', 'signup'] as const).map(m => (
+                <button
+                  key={m}
+                  onClick={() => { setMode(m); setError(null) }}
+                  style={{ flex: 1, padding: '6px', fontFamily: 'var(--font-pixel)', fontSize: '6px', background: mode === m ? 'var(--blue)' : 'transparent', color: mode === m ? '#fff' : 'var(--text-muted)', border: '1px solid var(--border)', cursor: 'pointer' }}
+                >
+                  {m === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT'}
+                </button>
+              ))}
+            </div>
+
+            <input
+              type="email"
+              placeholder="email"
+              aria-label="Email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              style={inputStyle}
+            />
+            <input
+              type="password"
+              placeholder="password"
+              aria-label="Password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleEmail() }}
+              style={inputStyle}
+            />
+
+            {error && (
+              <div style={{ fontFamily: 'monospace', fontSize: '11px', color: '#c03028' }}>{error}</div>
+            )}
+
+            <button
+              onClick={handleEmail}
+              disabled={loading || !email || !password}
+              style={{ padding: '10px 16px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'var(--font-pixel)', fontSize: '6px', letterSpacing: '0.5px', cursor: (loading || !email || !password) ? 'not-allowed' : 'pointer', opacity: (loading || !email || !password) ? 0.6 : 1 }}
+            >
+              {mode === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT'}
+            </button>
+
+            {mode === 'signin' && (
+              <button
+                onClick={() => { setMode('forgot'); setError(null) }}
+                style={{ background: 'transparent', border: 'none', fontFamily: 'var(--font-pixel)', fontSize: '6px', color: 'var(--text-muted)', cursor: 'pointer', padding: '0', textAlign: 'left' }}
+              >
+                FORGOT PASSWORD?
+              </button>
+            )}
+
+            <button
+              onClick={() => router.back()}
+              style={{ background: 'transparent', border: 'none', fontFamily: 'var(--font-pixel)', fontSize: '6px', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+            >
+              BACK
+            </button>
+          </>
         )}
-
-        <button
-          onClick={handleEmail}
-          disabled={loading || !email || !password}
-          style={{ padding: '10px 16px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'var(--font-pixel)', fontSize: '6px', letterSpacing: '0.5px', cursor: (loading || !email || !password) ? 'not-allowed' : 'pointer', opacity: (loading || !email || !password) ? 0.6 : 1 }}
-        >
-          {mode === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT'}
-        </button>
-
-        <button
-          onClick={() => router.back()}
-          style={{ background: 'transparent', border: 'none', fontFamily: 'var(--font-pixel)', fontSize: '6px', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
-        >
-          BACK
-        </button>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   )
 }
