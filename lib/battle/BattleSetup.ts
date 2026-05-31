@@ -211,8 +211,9 @@ export function configToSetup(raw: unknown): BattleSetup {
     const idx = parseInt(k)
     if (isNaN(idx) || !v || typeof v !== 'object') continue
     const sv = v as Record<string, unknown>
-    const ovNature = typeof sv.nature === 'string'
-      ? (Natures.ALL.find(n => n.name.toLowerCase() === sv.nature.toLowerCase()) ?? undefined)
+    const natureStr = typeof sv.nature === 'string' ? sv.nature : undefined
+    const ovNature = natureStr
+      ? (Natures.ALL.find(n => n.name.toLowerCase() === natureStr.toLowerCase()) ?? undefined)
       : undefined
     teamOverrides[idx] = {
       level:             typeof sv.level === 'number' ? sv.level : undefined,
