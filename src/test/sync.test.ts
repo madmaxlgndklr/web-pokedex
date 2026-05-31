@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   mergeCaughtPokemon,
   mergeTeam,
@@ -7,6 +7,156 @@ import {
   mergeBattleConfig,
   mergeSettings,
 } from '../../lib/sync-merge'
+
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    from: vi.fn(),
+  },
+}))
+
+import { db } from '@/lib/db'
+import { writeLocal, pushSettings } from '@/lib/sync'
+import { supabase } from '@/lib/supabase'
+
+const mockFrom = supabase.from as ReturnType<typeof vi.fn>
+
+beforeEach(async () => {
+  vi.clearAllMocks()
+  await db.settings.clear()
+  await db.caught_pokemon.clear()
+  await db.team.clear()
+  await db.trainer_records.clear()
+  await db.wild_records.clear()
+  await db.battle_config.clear()
+})
+
+describe('getLocalSettings', () => {
+  it('returns trainerName from Dexie', async () => {
+    await db.settings.bulkPut([
+      { key: 'generation', value: '4' },
+      { key: 'musicOnLaunch', value: 'true' },
+      { key: 'trainerName', value: 'ASH' },
+      { key: 'settings_updated_at', value: '9000' },
+    ])
+
+    const remote: import('@/lib/sync').RemoteState = {
+      caughtPokemon: [],
+      team: null,
+      trainerRecords: [],
+      wildRecords: [],
+      battleConfig: null,
+      settings: null,
+    }
+    const localSettings: import('@/lib/sync').LocalSettings = {
+      generation: 4,
+      musicOnLaunch: true,
+      trainerName: 'ASH',
+      updatedAt: 9000,
+    }
+
+    await writeLocal(remote, [], [], [], [], '{}', localSettings)
+
+    const stored = await db.settings.get('trainerName')
+    expect(stored?.value).toBe('ASH')
+  })
+
+  it('returns empty string for trainerName when not set in Dexie', async () => {
+    const remote: import('@/lib/sync').RemoteState = {
+      caughtPokemon: [],
+      team: null,
+      trainerRecords: [],
+      wildRecords: [],
+      battleConfig: null,
+      settings: null,
+    }
+    const localSettings: import('@/lib/sync').LocalSettings = {
+      generation: 3,
+      musicOnLaunch: false,
+      trainerName: '',
+      updatedAt: 0,
+    }
+
+    await writeLocal(remote, [], [], [], [], '{}', localSettings)
+
+    const stored = await db.settings.get('trainerName')
+    expect(stored?.value).toBe('')
+  })
+})
+
+describe('writeLocal', () => {
+  it('persists trainerName to Dexie when remote settings has trainer_name', async () => {
+    const remote: import('@/lib/sync').RemoteState = {
+      caughtPokemon: [],
+      team: null,
+      trainerRecords: [],
+      wildRecords: [],
+      battleConfig: null,
+      settings: { generation: 3, music_on_launch: false, trainer_name: 'MISTY', updated_at: 5000 },
+    }
+    const localSettings: import('@/lib/sync').LocalSettings = {
+      generation: 3,
+      musicOnLaunch: false,
+      trainerName: 'ASH',
+      updatedAt: 1000,
+    }
+
+    await writeLocal(remote, [], [], [], [], '{}', localSettings)
+
+    const stored = await db.settings.get('trainerName')
+    expect(stored?.value).toBe('MISTY')
+  })
+
+  it('keeps local trainerName when local is newer', async () => {
+    const remote: import('@/lib/sync').RemoteState = {
+      caughtPokemon: [],
+      team: null,
+      trainerRecords: [],
+      wildRecords: [],
+      battleConfig: null,
+      settings: { generation: 3, music_on_launch: false, trainer_name: 'MISTY', updated_at: 1000 },
+    }
+    const localSettings: import('@/lib/sync').LocalSettings = {
+      generation: 3,
+      musicOnLaunch: false,
+      trainerName: 'ASH',
+      updatedAt: 5000,
+    }
+
+    await writeLocal(remote, [], [], [], [], '{}', localSettings)
+
+    const stored = await db.settings.get('trainerName')
+    expect(stored?.value).toBe('ASH')
+  })
+})
+
+describe('pushSettings', () => {
+  it('includes trainer_name in the Supabase upsert', async () => {
+    const upsertMock = vi.fn().mockResolvedValue({ error: null })
+    mockFrom.mockReturnValue({ upsert: upsertMock })
+
+    await pushSettings('user-1', 3, false, 1234, 'ASH')
+
+    expect(mockFrom).toHaveBeenCalledWith('settings')
+    expect(upsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({ trainer_name: 'ASH' })
+    )
+  })
+
+  it('passes all fields including trainer_name to Supabase', async () => {
+    const upsertMock = vi.fn().mockResolvedValue({ error: null })
+    mockFrom.mockReturnValue({ upsert: upsertMock })
+
+    await pushSettings('user-42', 4, true, 9999, 'MISTY')
+
+    expect(upsertMock).toHaveBeenCalledWith({
+      user_id: 'user-42',
+      generation: 4,
+      music_on_launch: true,
+      updated_at: 9999,
+      trainer_name: 'MISTY',
+    })
+  })
+})
 
 describe('mergeCaughtPokemon', () => {
   it('unions local and remote pokemon ids', () => {

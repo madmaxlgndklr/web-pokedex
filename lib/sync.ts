@@ -54,7 +54,7 @@ export async function pullAll(userId: string): Promise<RemoteState> {
     supabase.from('trainer_records').select('*').eq('user_id', userId),
     supabase.from('wild_records').select('*').eq('user_id', userId),
     supabase.from('battle_config').select('config_json, updated_at').eq('user_id', userId).maybeSingle(),
-    supabase.from('settings').select('generation, music_on_launch, updated_at').eq('user_id', userId).maybeSingle(),
+    supabase.from('settings').select('generation, music_on_launch, trainer_name, updated_at').eq('user_id', userId).maybeSingle(),
   ])
 
   const errors = [caught.error, team.error, trainers.error, wild.error, config.error, settings.error].filter(Boolean)
@@ -71,14 +71,16 @@ export async function pullAll(userId: string): Promise<RemoteState> {
 }
 
 async function getLocalSettings(): Promise<LocalSettings> {
-  const [gen, music, ts] = await Promise.all([
+  const [gen, music, trainerName, ts] = await Promise.all([
     db.settings.get('generation'),
     db.settings.get('musicOnLaunch'),
+    db.settings.get('trainerName'),
     db.settings.get('settings_updated_at'),
   ])
   return {
     generation: gen ? parseInt(gen.value) : 3,
     musicOnLaunch: music?.value === 'true',
+    trainerName: trainerName?.value ?? '',
     updatedAt: ts ? parseInt(ts.value) : 0,
   }
 }
@@ -114,7 +116,7 @@ export async function writeLocal(
   const remoteConfigJson = remote.battleConfig ? JSON.stringify(remote.battleConfig.config_json) : null
   const mergedBattleConfig = mergeBattleConfig(localBattleConfig, localBattleConfigUpdatedAt, remoteConfigJson, remote.battleConfig?.updated_at ?? null)
   const remoteSettings = remote.settings
-    ? { generation: remote.settings.generation, musicOnLaunch: remote.settings.music_on_launch, updatedAt: remote.settings.updated_at }
+    ? { generation: remote.settings.generation, musicOnLaunch: remote.settings.music_on_launch, trainerName: remote.settings.trainer_name, updatedAt: remote.settings.updated_at }
     : null
   const mergedSettings = mergeSettings(localSettings, remoteSettings)
 
@@ -138,6 +140,7 @@ export async function writeLocal(
     await db.settings.bulkPut([
       { key: 'generation', value: String(mergedSettings.generation) },
       { key: 'musicOnLaunch', value: String(mergedSettings.musicOnLaunch) },
+      { key: 'trainerName', value: mergedSettings.trainerName },
       { key: 'settings_updated_at', value: String(mergedSettings.updatedAt || now) },
     ])
   })
@@ -261,11 +264,12 @@ export async function pushBattleConfig(userId: string, configJson: string, updat
   })
 }
 
-export async function pushSettings(userId: string, generation: number, musicOnLaunch: boolean, updatedAt: number): Promise<void> {
+export async function pushSettings(userId: string, generation: number, musicOnLaunch: boolean, updatedAt: number, trainerName: string): Promise<void> {
   await supabase.from('settings').upsert({
     user_id: userId,
     generation,
     music_on_launch: musicOnLaunch,
     updated_at: updatedAt,
+    trainer_name: trainerName,
   })
 }
