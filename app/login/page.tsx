@@ -1,5 +1,5 @@
 'use client'
-import { Suspense, useState, useEffect } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signInWithEmail, signUpWithEmail, linkGoogle, resetPasswordForEmail } from '@/lib/auth'
 
@@ -8,16 +8,14 @@ type Mode = 'signin' | 'signup' | 'forgot'
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [mode, setMode] = useState<Mode>('signin')
+  const [mode, setMode] = useState<Mode>(() =>
+    searchParams.get('mode') === 'forgot' ? 'forgot' : 'signin'
+  )
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [emailSent, setEmailSent] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (searchParams.get('mode') === 'forgot') setMode('forgot')
-  }, [searchParams])
+  const [emailSent, setEmailSent] = useState<{ address: string; type: 'reset' | 'signup' } | null>(null)
 
   const handleEmail = async () => {
     setError(null)
@@ -28,7 +26,7 @@ function LoginContent() {
         router.back()
       } else {
         await signUpWithEmail(email, password)
-        setEmailSent(email)
+        setEmailSent({ address: email, type: 'signup' })
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Authentication failed')
@@ -54,7 +52,7 @@ function LoginContent() {
     setLoading(true)
     try {
       await resetPasswordForEmail(email)
-      setEmailSent(email)
+      setEmailSent({ address: email, type: 'reset' })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to send reset email')
     } finally {
@@ -66,6 +64,7 @@ function LoginContent() {
     setEmailSent(null)
     setMode('signin')
     setError(null)
+    if (window.location.search) router.replace('/login')
   }
 
   const inputStyle: React.CSSProperties = {
@@ -88,9 +87,9 @@ function LoginContent() {
         {emailSent ? (
           <>
             <div style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text)', lineHeight: 1.5 }}>
-              {mode === 'forgot'
-                ? `Reset link sent to ${emailSent}.`
-                : `We sent a confirmation to ${emailSent}. Click the link to finish creating your account.`}
+              {emailSent.type === 'reset'
+                ? `Reset link sent to ${emailSent.address}.`
+                : `We sent a confirmation to ${emailSent.address}. Click the link to finish creating your account.`}
             </div>
             <button
               onClick={backToSignIn}
@@ -208,8 +207,17 @@ function LoginContent() {
 }
 
 export default function LoginPage() {
+  const fallback = (
+    <div style={{ background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px', padding: '24px', width: '100%', maxWidth: '360px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ fontFamily: 'var(--font-pixel)', fontSize: '8px', color: '#f0c040', letterSpacing: '1px' }}>
+          SYNC ACCOUNT
+        </div>
+      </div>
+    </div>
+  )
   return (
-    <Suspense>
+    <Suspense fallback={fallback}>
       <LoginContent />
     </Suspense>
   )
