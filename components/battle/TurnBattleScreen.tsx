@@ -41,17 +41,22 @@ export function TurnBattleScreen({ teamIds, trainer, onBack }: Props) {
     const trainerPkmn = trainer.rosters[0]?.[0]
     if (!trainerPkmn) return
     ;(async () => {
-      const { fetchTypeChart } = await import('@/lib/api')
-      const [enemyDetail, playerDetail, chart] = await Promise.all([
-        fetchPokemonDetail(trainerPkmn.id),
-        fetchPokemonDetail(teamIds[0]),
-        fetchTypeChart(),
-      ])
-      setTypeChart(chart)
-      setPlayer(buildPkmn(playerDetail))
-      setEnemy(buildPkmn(enemyDetail, trainerPkmn.level))
-      setLog([`${trainer.name.toUpperCase()} sent out ${trainerPkmn.name.toUpperCase()}!`])
-      setState({ phase: 'player_turn' })
+      try {
+        const { fetchTypeChart } = await import('@/lib/api')
+        const [enemyDetail, playerDetail, chart] = await Promise.all([
+          fetchPokemonDetail(trainerPkmn.id),
+          fetchPokemonDetail(teamIds[0]),
+          fetchTypeChart(),
+        ])
+        setTypeChart(chart)
+        setPlayer(buildPkmn(playerDetail))
+        setEnemy(buildPkmn(enemyDetail, trainerPkmn.level))
+        setLog([`${trainer.name.toUpperCase()} sent out ${enemyDetail.name.toUpperCase()}!`])
+        setState({ phase: 'player_turn' })
+      } catch (e) {
+        console.error('Failed to start trainer battle:', e)
+        setState({ phase: 'setup' })
+      }
     })()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trainer, teamIds])

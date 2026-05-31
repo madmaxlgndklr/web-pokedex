@@ -18,7 +18,8 @@ export interface Trainer {
   rosters: TrainerPokemon[][]
 }
 
-interface RawRoster { label: string; team: TrainerPokemon[] }
+interface RawPokemon { pokemonId: number; level: number; moves: string[]; heldItem?: string }
+interface RawRoster { label: string; team: RawPokemon[] }
 interface RawTrainer { id: string; name: string; title: string; trainerClass: Trainer['trainerClass']; typeSpecialty: string; rosters: RawRoster[] }
 interface RawRegion { name: string; trainers: RawTrainer[] }
 
@@ -31,7 +32,9 @@ export async function loadTrainers(): Promise<Trainer[]> {
       ...t,
       region: r.name,
       typeSpecialty: t.typeSpecialty.toLowerCase(),
-      rosters: t.rosters.map(roster => roster.team),
+      rosters: t.rosters.map(roster =>
+        roster.team.map(p => ({ id: p.pokemonId, name: '', level: p.level, moves: p.moves, heldItem: p.heldItem }))
+      ),
     }))
   )
 }
