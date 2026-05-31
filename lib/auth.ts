@@ -36,7 +36,8 @@ export async function getCurrentUser() {
 }
 
 export async function resetPasswordForEmail(email: string): Promise<void> {
-  const redirectTo = `${window.location.origin}/auth/reset-password`
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin
+  const redirectTo = `${origin}/auth/reset-password`
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
   if (error) throw error
 }

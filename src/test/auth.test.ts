@@ -14,17 +14,23 @@ import { supabase } from '@/lib/supabase'
 const mockReset = supabase.auth.resetPasswordForEmail as ReturnType<typeof vi.fn>
 
 describe('resetPasswordForEmail', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    Object.defineProperty(window, 'location', {
+      value: { origin: 'https://example.com' },
+      writable: true,
+    })
+  })
 
   it('calls supabase with email and a redirectTo pointing to /auth/reset-password', async () => {
     mockReset.mockResolvedValue({ data: {}, error: null })
 
     await resetPasswordForEmail('user@example.com')
 
-    expect(mockReset).toHaveBeenCalledOnce()
-    const [calledEmail, opts] = mockReset.mock.calls[0]
-    expect(calledEmail).toBe('user@example.com')
-    expect(opts.redirectTo).toContain('/auth/reset-password')
+    expect(mockReset).toHaveBeenCalledWith(
+      'user@example.com',
+      { redirectTo: 'https://example.com/auth/reset-password' }
+    )
   })
 
   it('throws when supabase returns an error', async () => {
