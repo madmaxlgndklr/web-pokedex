@@ -28,24 +28,31 @@ function CallbackContent() {
       return
     }
 
-    const code = searchParams.get('code')
-    if (!code) {
-      setError('No authorization code found.')
-      return
-    }
-
-    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-      if (!error) {
+    // Check session first — detectSessionInUrl (Supabase default) exchanges the code
+    // automatically on client init and strips it from the URL via history.replaceState,
+    // so by the time this effect runs, the code may already be gone but the session exists.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
         router.replace('/')
         return
       }
-      // detectSessionInUrl may have already consumed the code — check for existing session
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
+
+      const code = searchParams.get('code')
+      if (!code) {
+        setError('No authorization code found.')
+        return
+      }
+
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (!error) {
           router.replace('/')
-        } else {
-          setError(error.message)
+          return
         }
+        // Last-chance session check in case of race
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session) router.replace('/')
+          else setError(error.message)
+        })
       })
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally run once; guarded by ref
