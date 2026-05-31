@@ -12,6 +12,7 @@ const NAV = [
   { href: '/team',       label: 'TEAM'     },
   { href: '/battle',     label: 'BATTLE'   },
   { href: '/settings',   label: 'SETTINGS' },
+  { href: '/profile',    label: 'PROFILE'  },
 ]
 
 export function Sidebar() {
