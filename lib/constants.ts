@@ -1,7 +1,11 @@
 // lib/constants.ts
 
+// Server-side: fetch directly from the upstream. Client-side: go through the
+// Next.js proxy route so the browser never has to deal with the upstream's CORS headers.
 export const POKEAPI_BASE =
-  process.env.POKEAPI_BASE ?? 'https://madmaxlgndklrpokeapi.com/api/v2'
+  typeof window === 'undefined'
+    ? (process.env.POKEAPI_BASE ?? 'https://madmaxlgndklrpokeapi.com/api/v2')
+    : '/api/pokeapi'
 
 export const spriteUrl = (id: number) =>
   `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
