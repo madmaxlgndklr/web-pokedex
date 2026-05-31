@@ -1,6 +1,6 @@
 # Supabase Auth & Cross-Platform Sync Design
 
-> **For agentic workers:** This spec covers two codebases. Implement web changes in `/home/madmaxlgndklr/Git/web-pokedex` and Android changes in `/home/madmaxlgndklr/Git/sandbox/Pokedex`. Both share the same Supabase project.
+> **For agentic workers:** This spec covers two codebases. Implement web changes in `/home/madmaxlgndklr/Git/web-pokedex` and Android changes in `/home/madmaxlgndklr/Git/pokemon-battle-engine`. Both share the same Supabase project.
 
 **Goal:** Add Supabase-backed authentication and cross-platform data sync so user data (caught Pokémon, team, battle records, settings) persists across the web app and Android app.
 
@@ -69,6 +69,7 @@ create table battle_config (
 -- One row per user
 create table settings (
   user_id uuid references auth.users primary key,
+  trainer_name text not null default '',
   generation integer not null default 3,
   music_on_launch boolean not null default false,
   updated_at bigint not null default extract(epoch from now()) * 1000
@@ -169,8 +170,8 @@ Runs once in the background after the UI is visible. User sees local data immedi
 |---|---|
 | `caught_pokemon` | Union — keep all rows from both local and remote |
 | `team` | Last-write-wins on `updated_at` |
-| `trainer_records` | Per trainer: `wins = max(local.wins, remote.wins)`, `losses = max(local.losses, remote.losses)`, `first_defeated_at = min(non-null values)`, `last_battled_at = max(values)` |
-| `wild_records` | Same additive merge as trainer_records |
+| `trainer_records` | Per trainer: `wins = local.wins + remote.wins`, `losses = local.losses + remote.losses`, `first_defeated_at = min(non-null values)`, `last_battled_at = max(values)` |
+| `wild_records` | Per Pokémon: `wins = local.wins + remote.wins`, `losses = local.losses + remote.losses`, `last_battled_at = max(values)` |
 | `battle_config` | Last-write-wins on `updated_at` |
 | `settings` | Last-write-wins on `updated_at` |
 
@@ -200,6 +201,7 @@ No Supabase Realtime. Pull-on-open is sufficient; real-time would add complexity
 | `lib/auth.ts` | React hooks: `useUser()`, `useSignIn()`, `useSignUp()`, `useSignOut()`, `useLinkGoogle()` |
 | `lib/sync.ts` | `pullAll()`, `mergeAll()`, `writeLocal()`, `pushDiff()`, `syncOnOpen()` |
 | `app/login/page.tsx` | Login sheet: Google button + email sign-in form + email create-account form |
+| `app/profile/page.tsx` | Profile page: editable Trainer Name field (always visible), auth state section (sign-in/sign-up or signed-in badge + sign-out), last-sync timestamp |
 | `components/auth/AuthProvider.tsx` | Context wrapping whole app — initialises anonymous session on first load, exposes `user` and `session` |
 | `components/auth/AccountBadge.tsx` | Nav/settings component showing sign-in prompt or signed-in state |
 
@@ -207,7 +209,7 @@ No Supabase Realtime. Pull-on-open is sufficient; real-time would add complexity
 
 | Path | Change |
 |---|---|
-| `lib/db.ts` | After each write (caught toggle, team add/remove, battle record upsert, settings set), call the corresponding `pushToSupabase()` from `lib/sync.ts` |
+| `lib/db.ts` | After each write (caught toggle, team add/remove, battle record upsert, settings set including trainer name), call the corresponding `pushToSupabase()` from `lib/sync.ts` |
 | `app/layout.tsx` | Wrap children with `<AuthProvider>`, call `syncOnOpen()` after session is ready |
 | `.env.local` | Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
 
@@ -224,37 +226,40 @@ Both are `NEXT_PUBLIC_` because the Supabase client runs in the browser. The ano
 
 ## 5. Android Implementation
 
-**Repo:** `/home/madmaxlgndklr/Git/sandbox/Pokedex`
+**Repo:** `/home/madmaxlgndklr/Git/pokemon-battle-engine`
 
 ### New Files
 
 | Path | Purpose |
 |---|---|
-| `data/remote/SupabaseClient.kt` | Supabase client singleton using the Kotlin SDK (`io.github.jan-tennert.supabase`) |
-| `data/remote/AuthRepository.kt` | `signInAnonymously()`, `signInWithEmail()`, `signUpWithEmail()`, `linkGoogle()`, `signOut()`, `currentUser()`, session restore |
+| `data/remote/SupabaseModule.kt` | Supabase client singleton using the Kotlin SDK (`io.github.jan-tennert.supabase`), GoTrue + Postgrest plugins |
+| `data/remote/AuthRepository.kt` | `signInAnonymously()`, `signInWithEmail()`, `signUpWithEmail()`, `linkGoogle()` (Android Credential Manager → ID token → Supabase), `signOut()`, `currentUser()`, session restore |
 | `data/remote/SyncRepository.kt` | `pullAll()`, `mergeAll()`, `writeLocal()`, `pushDiff()`, `syncOnOpen()` |
-| `ui/auth/LoginScreen.kt` | Bottom sheet: Google button + email forms |
-| `ui/auth/LoginViewModel.kt` | Form state, validation, calls `AuthRepository`, triggers `syncOnOpen()` on success |
+| `data/local/CaughtPokemon.kt` | New Room entity: `CaughtPokemon(pokemonId: Int)` — persists caught collection even if no UI exists yet |
+| `ui/profile/ProfileScreen.kt` | Dedicated screen linked from Settings: editable "Trainer Name" text field (always visible, saved on change); auth section below showing sign-in/sign-up form or signed-in badge + sign-out; Google Sign-In button |
+| `ui/profile/ProfileViewModel.kt` | Trainer name state + save; auth state; calls `AuthRepository` and triggers `syncOnOpen()` on sign-in |
+| `ui/auth/LoginSheet.kt` | Bottom sheet composable: Google button, email/password fields, create account toggle |
 
 ### Modified Files
 
 | Path | Change |
 |---|---|
-| `PokedexApplication.kt` | Initialise `SupabaseClient`, call `AuthRepository.signInAnonymously()` if no session |
-| `ui/settings/SettingsScreen.kt` | Add account section — sign-in prompt or email + sign-out |
-| `ui/settings/SettingsViewModel.kt` | Expose `currentUser` state, handle sign-out |
-| `data/local/CaughtPokemonDao.kt` | After insert/delete, call `SyncRepository.pushCaughtPokemon()` |
-| `data/repository/BattleRecordRepository.kt` | After upsert, call `SyncRepository.pushBattleRecord()` |
-| `ui/team/TeamViewModel.kt` | After `setTeam()`, call `SyncRepository.pushTeam()` |
-| `data/local/SettingsDataStore.kt` | After setting gen / music, call `SyncRepository.pushSettings()` |
+| `PokedexApplication.kt` | Initialise `SupabaseModule`, call `AuthRepository.signInAnonymously()` if no session, then `SyncRepository.syncOnOpen()` |
+| `ui/settings/SettingsScreen.kt` | Add "Profile" row linking to `ProfileScreen` |
+| `data/local/SettingsDataStore.kt` | Add `trainerName` key (`stringPreferencesKey("trainer_name")`); after every settings write call `SyncRepository.pushSettings()` |
+| `data/repository/BattleRecordRepository.kt` | After every upsert call `SyncRepository.pushBattleRecord()` |
 
 ### Dependencies to Add (`build.gradle.kts`)
 
 ```kotlin
-implementation("io.github.jan-tennert.supabase:postgrest-kt:2.x.x")
-implementation("io.github.jan-tennert.supabase:auth-kt:2.x.x")
-implementation("io.ktor:ktor-client-android:2.x.x")
+implementation("io.github.jan-tennert.supabase:postgrest-kt:3.x.x")
+implementation("io.github.jan-tennert.supabase:auth-kt:3.x.x")
+implementation("io.github.jan-tennert.supabase:compose-auth:3.x.x")       // Google Credential Manager helper
+implementation("io.github.jan-tennert.supabase:compose-auth-ui:3.x.x")    // pre-built sign-in UI (optional)
+implementation("io.ktor:ktor-client-android:3.x.x")
 ```
+
+> **Note:** Pin to the latest 3.x stable release at implementation time — check https://github.com/supabase-community/supabase-kt/releases.
 
 ### Configuration
 
@@ -272,7 +277,19 @@ buildConfigField("String", "SUPABASE_ANON_KEY", "\"${properties["SUPABASE_ANON_K
 
 ---
 
-## 6. Out of Scope
+## 6. Trainer Name
+
+`trainer_name` is a user-editable text field stored in the `settings` table and synced identically to other settings (last-write-wins on `updated_at`).
+
+**Android:** `SettingsDataStore` gains a `trainerName: Flow<String>` property and a `setTrainerName(name: String)` suspend function. `ProfileScreen` renders it above the auth section as a labelled text field with an "Save" button (or debounced on-change). Calling `setTrainerName` triggers `SyncRepository.pushSettings()` as a fire-and-forget.
+
+**Web:** `app/profile/page.tsx` renders a "Trainer Name" text input at the top of the page. On save it writes to `lib/db.ts` settings store and calls `pushToSupabase('settings', ...)`.
+
+**Both platforms:** Trainer Name is visible and editable even in the anonymous state — it is a local preference, not gated on sign-in.
+
+---
+
+## 7. Out of Scope
 
 - Supabase Realtime subscriptions — pull-on-open is sufficient
 - Search history sync — device-specific, not worth syncing
