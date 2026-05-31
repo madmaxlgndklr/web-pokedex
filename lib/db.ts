@@ -198,15 +198,17 @@ export function useSetting(key: string, defaultValue: string): [string, (v: stri
   const set = async (v: string) => {
     const now = Date.now()
     await db.settings.put({ key, value: v })
-    // Only generation and musicOnLaunch are synced to Supabase
-    if (key === 'generation' || key === 'musicOnLaunch') {
+    if (key === 'generation' || key === 'musicOnLaunch' || key === 'trainerName') {
       await db.settings.put({ key: 'settings_updated_at', value: String(now) })
-      const otherKey = key === 'generation' ? 'musicOnLaunch' : 'generation'
-      const otherRow = await db.settings.get(otherKey)
-      const generation = key === 'generation' ? parseInt(v, 10) : parseInt(otherRow?.value ?? '3', 10)
-      const musicOnLaunch = key === 'musicOnLaunch' ? v === 'true' : otherRow?.value === 'true'
+      const [generationRow, musicOnLaunchRow, trainerNameRow] = await Promise.all([
+        db.settings.get('generation'),
+        db.settings.get('musicOnLaunch'),
+        db.settings.get('trainerName'),
+      ])
+      const generation = parseInt(generationRow?.value ?? '3', 10)
+      const musicOnLaunch = musicOnLaunchRow?.value === 'true'
       const userId = await getUserId()
-      if (userId) pushSettings(userId, generation, musicOnLaunch, now).catch(() => {})
+      if (userId) pushSettings(userId, generation, musicOnLaunch, now, trainerNameRow?.value ?? '').catch(() => {})
     }
   }
   return [value, set]

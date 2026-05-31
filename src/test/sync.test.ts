@@ -30,7 +30,7 @@ beforeEach(async () => {
   await db.battle_config.clear()
 })
 
-describe('getLocalSettings', () => {
+describe('writeLocal — local-only settings', () => {
   it('returns trainerName from Dexie', async () => {
     await db.settings.bulkPut([
       { key: 'generation', value: '4' },
