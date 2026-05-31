@@ -24,15 +24,17 @@ export function Sidebar() {
         style={{ background: 'var(--surface)', borderRight: '1px solid var(--border)' }}
         className="hidden lg:flex flex-col w-44 xl:w-52 min-h-screen sticky top-0 h-screen shrink-0"
       >
-        <div style={{ background: 'var(--header)' }} className="p-4 flex items-center gap-2 shrink-0">
-          <div
-            style={{ background: 'var(--glow)', boxShadow: '0 0 8px var(--glow)' }}
-            className="w-3 h-3 rounded-full shrink-0"
-          />
-          <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', letterSpacing: '2px', color: '#fff' }}>
-            POKÉDEX
-          </span>
-        </div>
+        <Link href="/" style={{ display: 'block', textDecoration: 'none' }}>
+          <div style={{ background: 'var(--header)' }} className="p-4 flex items-center gap-2 shrink-0">
+            <div
+              style={{ background: 'var(--glow)', boxShadow: '0 0 8px var(--glow)' }}
+              className="w-3 h-3 rounded-full shrink-0"
+            />
+            <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', letterSpacing: '2px', color: '#fff' }}>
+              POKÉDEX
+            </span>
+          </div>
+        </Link>
 
         <nav className="flex-1 py-4 overflow-y-auto">
           {NAV.map(({ href, label }) => {
@@ -70,12 +72,14 @@ export function Sidebar() {
         style={{ background: 'var(--header)' }}
         className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3"
       >
-        <div className="flex items-center gap-2">
-          <div style={{ background: 'var(--glow)', boxShadow: '0 0 6px var(--glow)' }} className="w-2 h-2 rounded-full" />
-          <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', letterSpacing: '2px', color: '#fff' }}>
-            POKÉDEX
-          </span>
-        </div>
+        <Link href="/" style={{ textDecoration: 'none' }}>
+          <div className="flex items-center gap-2">
+            <div style={{ background: 'var(--glow)', boxShadow: '0 0 6px var(--glow)' }} className="w-2 h-2 rounded-full" />
+            <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', letterSpacing: '2px', color: '#fff' }}>
+              POKÉDEX
+            </span>
+          </div>
+        </Link>
         <MobileMenu nav={NAV} pathname={pathname} />
       </div>
 

@@ -1,16 +1,40 @@
 // app/HomeSearch.tsx
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { spriteUrl } from '@/lib/constants'
+import { useSetting } from '@/lib/db'
+import { LaunchAnimation } from '@/components/ui/LaunchAnimation'
 
 interface Props { allPokemon: { id: number; name: string }[] }
 
 export function HomeSearch({ allPokemon }: Props) {
   const [query, setQuery] = useState('')
   const router = useRouter()
+
+  const [animDisable] = useSetting('animDisable', 'false')
+  const [animPlayEvery] = useSetting('animPlayEvery', 'false')
+  const [showAnim, setShowAnim] = useState<boolean | null>(null)  // null = not yet determined
+
+  useEffect(() => {
+    if (animDisable === 'true') { setShowAnim(false); return }
+
+    const played = sessionStorage.getItem('animPlayed')
+    if (animPlayEvery === 'true') {
+      setShowAnim(true)
+    } else if (!played) {
+      setShowAnim(true)
+    } else {
+      setShowAnim(false)
+    }
+  }, [animDisable, animPlayEvery])
+
+  const handleAnimComplete = () => {
+    sessionStorage.setItem('animPlayed', '1')
+    setShowAnim(false)
+  }
 
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -26,6 +50,9 @@ export function HomeSearch({ allPokemon }: Props) {
     const match = allPokemon.find(p => p.name === query.toLowerCase() || String(p.id) === query)
     if (match) router.push(`/pokemon/${match.id}`)
   }
+
+  if (showAnim === null) return null  // avoid flash — wait until settings loaded
+  if (showAnim) return <LaunchAnimation onComplete={handleAnimComplete} />
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }} className="flex flex-col items-center justify-center px-4">

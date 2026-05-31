@@ -8,6 +8,8 @@ export default function SettingsPage() {
   const [gen, setGen] = useSetting('generation', '3')
   const [music, setMusic] = useSetting('musicOnLaunch', 'false')
   const [spriteMode, setSpriteMode] = useSetting('sprite_mode', 'modern')
+  const [animDisable, setAnimDisable] = useSetting('animDisable', 'false')
+  const [animPlayEvery, setAnimPlayEvery] = useSetting('animPlayEvery', 'false')
 
   const row = (label: string, control: React.ReactNode) => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
@@ -79,6 +81,43 @@ export default function SettingsPage() {
           }}
         >
           {music === 'true' ? 'ON' : 'OFF'}
+        </button>
+      ))}
+
+      {row('DISABLE ANIMATION', (
+        <button
+          onClick={() => setAnimDisable(animDisable === 'true' ? 'false' : 'true')}
+          style={{
+            background: animDisable === 'true' ? 'var(--gold)' : 'var(--surface)',
+            border: '1px solid var(--border)',
+            color: animDisable === 'true' ? 'var(--surface)' : 'var(--text-muted)',
+            fontFamily: 'var(--font-pixel)',
+            fontSize: '7px',
+            padding: '4px 10px',
+            borderRadius: '3px',
+            cursor: 'pointer',
+          }}
+        >
+          {animDisable === 'true' ? 'ON' : 'OFF'}
+        </button>
+      ))}
+
+      {row('PLAY EVERY VISIT', (
+        <button
+          onClick={() => { if (animDisable !== 'true') setAnimPlayEvery(animPlayEvery === 'true' ? 'false' : 'true') }}
+          style={{
+            background: animPlayEvery === 'true' && animDisable !== 'true' ? 'var(--gold)' : 'var(--surface)',
+            border: '1px solid var(--border)',
+            color: animPlayEvery === 'true' && animDisable !== 'true' ? 'var(--surface)' : 'var(--text-muted)',
+            fontFamily: 'var(--font-pixel)',
+            fontSize: '7px',
+            padding: '4px 10px',
+            borderRadius: '3px',
+            cursor: animDisable === 'true' ? 'not-allowed' : 'pointer',
+            opacity: animDisable === 'true' ? 0.4 : 1,
+          }}
+        >
+          {animPlayEvery === 'true' ? 'ON' : 'OFF'}
         </button>
       ))}
 
