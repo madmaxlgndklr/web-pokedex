@@ -9,18 +9,19 @@ export type HeldItemEffect =
   | { kind: 'none' }
 
 const ITEM_EFFECTS: Record<string, HeldItemEffect> = {
-  'choice-band':    { kind: 'stat_multiplier', statIndex: 1, factor: 1.5 },
-  'choice-specs':   { kind: 'stat_multiplier', statIndex: 3, factor: 1.5 },
-  'choice-scarf':   { kind: 'stat_multiplier', statIndex: 5, factor: 1.5 },
-  'life-orb':       { kind: 'damage_multiplier', factor: 1.3 },
-  'expert-belt':    { kind: 'super_effective_boost', factor: 1.2 },
-  'muscle-band':    { kind: 'stat_multiplier', statIndex: 1, factor: 1.1 },
-  'wise-glasses':   { kind: 'stat_multiplier', statIndex: 3, factor: 1.1 },
-  'flame-orb':      { kind: 'none' },
-  'toxic-orb':      { kind: 'none' },
+  'choice-band':  { kind: 'stat_multiplier', statIndex: 1, factor: 1.5 },
+  'choice-specs': { kind: 'stat_multiplier', statIndex: 3, factor: 1.5 },
+  'choice-scarf': { kind: 'stat_multiplier', statIndex: 5, factor: 1.5 },
+  'life-orb':     { kind: 'damage_multiplier', factor: 1.3 },
+  'expert-belt':  { kind: 'super_effective_boost', factor: 1.2 },
+  'muscle-band':  { kind: 'stat_multiplier', statIndex: 1, factor: 1.1 },
+  'wise-glasses': { kind: 'stat_multiplier', statIndex: 3, factor: 1.1 },
+  'flame-orb':    { kind: 'none' },
+  'toxic-orb':    { kind: 'none' },
 }
 
 const TYPE_ITEMS: [string, string, number][] = [
+  // Classic type-boosting items
   ['charcoal', 'fire', 1.2], ['mystic-water', 'water', 1.2],
   ['miracle-seed', 'grass', 1.2], ['magnet', 'electric', 1.2],
   ['never-melt-ice', 'ice', 1.2], ['black-belt', 'fighting', 1.2],
@@ -30,6 +31,16 @@ const TYPE_ITEMS: [string, string, number][] = [
   ['spell-tag', 'ghost', 1.2], ['dragon-fang', 'dragon', 1.2],
   ['black-glasses', 'dark', 1.2], ['metal-coat', 'steel', 1.2],
   ['silk-scarf', 'normal', 1.2], ['fairy-feather', 'fairy', 1.2],
+  // Plates
+  ['flame-plate', 'fire', 1.2], ['splash-plate', 'water', 1.2],
+  ['zap-plate', 'electric', 1.2], ['meadow-plate', 'grass', 1.2],
+  ['icicle-plate', 'ice', 1.2], ['fist-plate', 'fighting', 1.2],
+  ['toxic-plate', 'poison', 1.2], ['earth-plate', 'ground', 1.2],
+  ['sky-plate', 'flying', 1.2], ['mind-plate', 'psychic', 1.2],
+  ['insect-plate', 'bug', 1.2], ['stone-plate', 'rock', 1.2],
+  ['spooky-plate', 'ghost', 1.2], ['draco-plate', 'dragon', 1.2],
+  ['dread-plate', 'dark', 1.2], ['iron-plate', 'steel', 1.2],
+  ['pixie-plate', 'fairy', 1.2],
 ]
 
 export function getHeldItemEffect(item: HeldItem | null): HeldItemEffect {
