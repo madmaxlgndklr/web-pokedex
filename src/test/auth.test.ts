@@ -47,25 +47,38 @@ describe('resetPasswordForEmail', () => {
 })
 
 describe('signUpWithEmail', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    Object.defineProperty(window, 'location', {
+      value: { origin: 'https://example.com' },
+      writable: true,
+    })
+  })
 
-  it('calls updateUser when a session exists (upgrades anonymous session)', async () => {
+  it('calls updateUser with emailRedirectTo when a session exists (upgrades anonymous session)', async () => {
     mockGetSession.mockResolvedValue({ data: { session: { user: { id: 'anon' } } } })
     mockUpdateUser.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
 
     await signUpWithEmail('user@example.com', 'password123')
 
-    expect(mockUpdateUser).toHaveBeenCalledWith({ email: 'user@example.com', password: 'password123' })
+    expect(mockUpdateUser).toHaveBeenCalledWith(
+      { email: 'user@example.com', password: 'password123' },
+      { emailRedirectTo: 'https://example.com/auth/callback' }
+    )
     expect(mockSignUp).not.toHaveBeenCalled()
   })
 
-  it('falls back to signUp when no session exists', async () => {
+  it('falls back to signUp with emailRedirectTo when no session exists', async () => {
     mockGetSession.mockResolvedValue({ data: { session: null } })
     mockSignUp.mockResolvedValue({ data: { user: { id: 'u2' } }, error: null })
 
     await signUpWithEmail('user@example.com', 'password123')
 
-    expect(mockSignUp).toHaveBeenCalledWith({ email: 'user@example.com', password: 'password123' })
+    expect(mockSignUp).toHaveBeenCalledWith({
+      email: 'user@example.com',
+      password: 'password123',
+      options: { emailRedirectTo: 'https://example.com/auth/callback' },
+    })
     expect(mockUpdateUser).not.toHaveBeenCalled()
   })
 
