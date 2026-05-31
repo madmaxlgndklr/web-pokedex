@@ -39,6 +39,7 @@ function SetupView({
   const [selectedSlot, setSelectedSlot] = useState(0)
   const [slotDetails, setSlotDetails] = useState<Record<number, PokemonDetail>>({})
   const [loadingSlot, setLoadingSlot] = useState(false)
+  const [slotFetchError, setSlotFetchError] = useState<string | null>(null)
   const [moves, setMoves] = useState<LearnableMove[]>([])
 
   const slotLevel = selectedSlot === 0
@@ -64,8 +65,11 @@ function SetupView({
     const id = teamIds[selectedSlot]
     if (!id || slotDetail) return
     setLoadingSlot(true)
+    setSlotFetchError(null)
     fetchPokemonDetail(id).then(d => {
       setSlotDetails(prev => ({ ...prev, [selectedSlot]: d }))
+    }).catch(() => {
+      setSlotFetchError('Could not load Pokémon data. Check that the PokéAPI is reachable.')
     }).finally(() => setLoadingSlot(false))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSlot, teamIds])
@@ -187,7 +191,11 @@ function SetupView({
       )}
 
       {loadingSlot && (
-        <div style={{ ...pxFont, fontSize: '6px', color: 'var(--text-muted)' }}>Loading...</div>
+        <div style={{ ...pxFont, fontSize: '6px', color: 'var(--text-muted)' }}>Loading Pokémon data...</div>
+      )}
+
+      {slotFetchError && !detail && (
+        <div style={{ ...pxFont, fontSize: '6px', color: '#c03028' }}>{slotFetchError}</div>
       )}
 
       {detail && (
@@ -362,6 +370,7 @@ function OngoingView({
   const player = state.playerTeam[state.playerActiveIndex]
   const opponent = state.opponentTeam[state.opponentActiveIndex]
   const logRef = useRef<HTMLDivElement>(null)
+  const canSwitch = state.playerTeam.some((p, i) => i !== state.playerActiveIndex && p.currentHp > 0)
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
@@ -424,11 +433,9 @@ function OngoingView({
 
       {/* Switch + Forfeit */}
       <div style={{ display: 'flex', gap: '4px' }}>
-        {state.playerTeam.length > 1 && (
-          <Button variant="secondary" onClick={() => setShowSwitch(true)} style={{ flex: 1, fontSize: '6px' }}>
-            SWITCH
-          </Button>
-        )}
+        <Button variant="secondary" onClick={() => setShowSwitch(true)} disabled={!canSwitch} style={{ flex: 1, fontSize: '6px' }}>
+          SWITCH
+        </Button>
         <Button variant="secondary" onClick={onForfeit} style={{ flex: 1, fontSize: '6px', color: '#c03028' }}>
           FORFEIT
         </Button>
@@ -519,16 +526,19 @@ export function TurnBattleScreen({ teamIds, trainer, onBack }: Props) {
   const [battleState, setBattleState] = useState<BattleState | null>(null)
   const [loadingStart, setLoadingStart] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  useWildRecords()
+  const { recordBattle: recordWild } = useWildRecords()
   const { recordBattle: recordTrainer } = useTrainerRecords()
+  const wildOpponentRef = useRef<{ id: number; name: string } | null>(null)
 
   // Record result on battle end
   useEffect(() => {
     if (!battleState) return
     if (battleState.phase === 'won') {
       if (trainer) recordTrainer({ trainerId: trainer.id, name: trainer.name, title: trainer.title, region: trainer.region, trainerClass: trainer.trainerClass, typeSpecialty: trainer.typeSpecialty }, true)
+      else if (wildOpponentRef.current) recordWild(wildOpponentRef.current.id, wildOpponentRef.current.name, true)
     } else if (battleState.phase === 'lost') {
       if (trainer) recordTrainer({ trainerId: trainer.id, name: trainer.name, title: trainer.title, region: trainer.region, trainerClass: trainer.trainerClass, typeSpecialty: trainer.typeSpecialty }, false)
+      else if (wildOpponentRef.current) recordWild(wildOpponentRef.current.id, wildOpponentRef.current.name, false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [battleState?.phase])
@@ -581,6 +591,7 @@ export function TurnBattleScreen({ teamIds, trainer, onBack }: Props) {
         const moves = await resolveMoves(learnableMoves(detail, setup.level).filter(m => m.available).slice(0, 4).map(m => m.name))
         opponentTeam = [buildBattlePokemon(detail.id, detail.name, detail.types.map(t => t.type.name), buildBaseStats(detail), setup.level, moves)]
         initialLog = [`A wild ${detail.name.toUpperCase()} appeared!`]
+        wildOpponentRef.current = { id: detail.id, name: detail.name }
       }
 
       setBattleState(startBattle(playerTeam, opponentTeam, initialLog))
@@ -628,7 +639,8 @@ export function TurnBattleScreen({ teamIds, trainer, onBack }: Props) {
     if (!battleState || battleState.phase !== 'ongoing') return
     setBattleState({ phase: 'lost', log: [...battleState.log, 'You forfeited.'] })
     if (trainer) recordTrainer({ trainerId: trainer.id, name: trainer.name, title: trainer.title, region: trainer.region, trainerClass: trainer.trainerClass, typeSpecialty: trainer.typeSpecialty }, false)
-  }, [battleState, trainer, recordTrainer])
+    else if (wildOpponentRef.current) recordWild(wildOpponentRef.current.id, wildOpponentRef.current.name, false)
+  }, [battleState, trainer, recordTrainer, recordWild])
 
   const handleRematch = useCallback(() => {
     setBattleState(null)
