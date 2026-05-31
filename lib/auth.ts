@@ -34,3 +34,9 @@ export async function getCurrentUser() {
   const { data: { user } } = await supabase.auth.getUser()
   return user
 }
+
+export async function resetPasswordForEmail(email: string): Promise<void> {
+  const redirectTo = `${window.location.origin}/auth/reset-password`
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+  if (error) throw error
+}
