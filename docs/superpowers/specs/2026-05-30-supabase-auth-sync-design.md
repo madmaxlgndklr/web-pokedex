@@ -1,6 +1,6 @@
 # Supabase Auth & Cross-Platform Sync Design
 
-> **For agentic workers:** This spec covers two codebases. Implement web changes in `/home/madmaxlgndklr/Git/web-pokedex` and Android changes in `/home/madmaxlgndklr/Git/pokemon-battle-engine`. Both share the same Supabase project.
+> **For agentic workers:** This spec covers two codebases. Implement web changes in `/home/madmaxlgndklr/Git/web-pokedex` and Android changes in `/home/madmaxlgndklr/Git/sandbox/Pokedex`. Both share the same Supabase project.
 
 **Goal:** Add Supabase-backed authentication and cross-platform data sync so user data (caught Pokémon, team, battle records, settings) persists across the web app and Android app.
 
@@ -226,7 +226,7 @@ Both are `NEXT_PUBLIC_` because the Supabase client runs in the browser. The ano
 
 ## 5. Android Implementation
 
-**Repo:** `/home/madmaxlgndklr/Git/pokemon-battle-engine`
+**Repo:** `/home/madmaxlgndklr/Git/sandbox/Pokedex`
 
 ### New Files
 
