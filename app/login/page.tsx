@@ -89,7 +89,7 @@ function LoginContent() {
             <div style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text)', lineHeight: 1.5 }}>
               {emailSent.type === 'reset'
                 ? `Reset link sent to ${emailSent.address}.`
-                : `We sent a confirmation to ${emailSent.address}. Click the link to finish creating your account.`}
+                : `We sent a confirmation email to ${emailSent.address}. Click the link to activate your account.`}
             </div>
             <button
               onClick={backToSignIn}
