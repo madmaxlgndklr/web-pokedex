@@ -17,7 +17,7 @@ export interface RemoteWildRow {
   wins: number; losses: number; last_battled_at: number
 }
 export interface RemoteBattleConfigRow { config_json: Record<string, unknown>; updated_at: number }
-export interface RemoteSettingsRow { generation: number; music_on_launch: boolean; updated_at: number }
+export interface RemoteSettingsRow { generation: number; music_on_launch: boolean; trainer_name: string; updated_at: number }
 
 export interface RemoteState {
   caughtPokemon: RemoteCaughtRow[]
@@ -31,6 +31,7 @@ export interface RemoteState {
 export interface LocalSettings {
   generation: number
   musicOnLaunch: boolean
+  trainerName: string
   updatedAt: number
 }
 
@@ -122,10 +123,10 @@ export function mergeBattleConfig(
 
 export function mergeSettings(
   local: LocalSettings,
-  remote: { generation: number; musicOnLaunch: boolean; updatedAt: number } | null
+  remote: { generation: number; musicOnLaunch: boolean; trainerName: string; updatedAt: number } | null
 ): LocalSettings {
   if (remote === null) return local
   return remote.updatedAt > local.updatedAt
-    ? { generation: remote.generation, musicOnLaunch: remote.musicOnLaunch, updatedAt: remote.updatedAt }
+    ? { generation: remote.generation, musicOnLaunch: remote.musicOnLaunch, trainerName: remote.trainerName, updatedAt: remote.updatedAt }
     : local
 }

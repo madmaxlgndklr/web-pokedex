@@ -128,4 +128,26 @@ describe('mergeSettings', () => {
     const result = mergeSettings({ generation: 3, musicOnLaunch: false, updatedAt: 1000 }, null)
     expect(result.generation).toBe(3)
   })
+
+  describe('mergeSettings trainerName', () => {
+    it('remote wins when newer', () => {
+      const local = { generation: 5, musicOnLaunch: false, trainerName: 'ASH', updatedAt: 100 }
+      const remote = { generation: 3, musicOnLaunch: true, trainerName: 'MISTY', updatedAt: 200 }
+      const result = mergeSettings(local, remote)
+      expect(result.trainerName).toBe('MISTY')
+    })
+
+    it('local wins when newer', () => {
+      const local = { generation: 5, musicOnLaunch: false, trainerName: 'ASH', updatedAt: 300 }
+      const remote = { generation: 3, musicOnLaunch: true, trainerName: 'MISTY', updatedAt: 200 }
+      const result = mergeSettings(local, remote)
+      expect(result.trainerName).toBe('ASH')
+    })
+
+    it('local returned when remote is null', () => {
+      const local = { generation: 5, musicOnLaunch: false, trainerName: 'ASH', updatedAt: 100 }
+      const result = mergeSettings(local, null)
+      expect(result.trainerName).toBe('ASH')
+    })
+  })
 })
