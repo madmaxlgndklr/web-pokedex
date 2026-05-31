@@ -1,6 +1,6 @@
 // app/HomeSearch.tsx
 'use client'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -21,20 +21,15 @@ export function HomeSearch({ allPokemon }: Props) {
   useEffect(() => {
     if (animDisable === 'true') { setShowAnim(false); return }
 
-    const played = sessionStorage.getItem('animPlayed')
-    if (animPlayEvery === 'true') {
-      setShowAnim(true)
-    } else if (!played) {
-      setShowAnim(true)
-    } else {
-      setShowAnim(false)
-    }
+    let played = false
+    try { played = !!sessionStorage.getItem('animPlayed') } catch { /* private mode */ }
+    setShowAnim(animPlayEvery === 'true' || !played)
   }, [animDisable, animPlayEvery])
 
-  const handleAnimComplete = () => {
-    sessionStorage.setItem('animPlayed', '1')
+  const handleAnimComplete = useCallback(() => {
+    try { sessionStorage.setItem('animPlayed', '1') } catch { /* private mode */ }
     setShowAnim(false)
-  }
+  }, [])
 
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase()
