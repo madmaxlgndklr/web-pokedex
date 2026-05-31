@@ -13,6 +13,7 @@ export function PokemonListClient({ allPokemon }: Props) {
   const { caught, toggle } = useCaughtPokemon()
   const [genFilter, setGenFilter] = useState<number | null>(null)
   const [showCaughtOnly, setShowCaughtOnly] = useState(false)
+  const [selecting, setSelecting] = useState(false)
 
   const filtered = useMemo(() => {
     let list = allPokemon
@@ -24,15 +25,21 @@ export function PokemonListClient({ allPokemon }: Props) {
     return list
   }, [allPokemon, genFilter, showCaughtOnly, caught])
 
-  const allCaught = filtered.every(p => caught.has(p.id))
+  const allCaught = filtered.length > 0 && filtered.every(p => caught.has(p.id))
 
-  async function handleSelectAll() {
-    if (allCaught) {
-      // Deselect all: uncatch every filtered pokemon
-      await Promise.all(filtered.map(p => toggle(p.id)))
-    } else {
-      // Select all: catch only the uncaught ones
-      await Promise.all(filtered.filter(p => !caught.has(p.id)).map(p => toggle(p.id)))
+  const handleSelectAll = async () => {
+    if (selecting) return
+    setSelecting(true)
+    try {
+      if (allCaught) {
+        // Deselect all: uncatch every filtered pokemon
+        await Promise.all(filtered.map(p => toggle(p.id)))
+      } else {
+        // Select all: catch only the uncaught ones
+        await Promise.all(filtered.filter(p => !caught.has(p.id)).map(p => toggle(p.id)))
+      }
+    } finally {
+      setSelecting(false)
     }
   }
 
@@ -101,6 +108,7 @@ export function PokemonListClient({ allPokemon }: Props) {
       {genFilter !== null && (
         <button
           onClick={handleSelectAll}
+          disabled={selecting}
           style={{
             marginTop: '12px',
             background: allCaught ? 'var(--gold)' : 'var(--surface)',
@@ -110,7 +118,8 @@ export function PokemonListClient({ allPokemon }: Props) {
             fontSize: '6px',
             padding: '4px 8px',
             borderRadius: '3px',
-            cursor: 'pointer',
+            opacity: selecting ? 0.5 : 1,
+            cursor: selecting ? 'not-allowed' : 'pointer',
           }}
         >
           {allCaught ? '✓ DESELECT ALL' : '★ SELECT ALL'}
